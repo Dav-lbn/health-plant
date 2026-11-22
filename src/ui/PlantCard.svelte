@@ -4,9 +4,25 @@
   import { photoUrl } from '../lib/photos';
   import { daysBetween, relativeDays, todayLocal } from '../lib/dates';
 
-  let { plant, photo, lastWater, selected = false, health }: { plant: Plant; photo?: Photo; lastWater?: string; selected?: boolean; health?: HealthState } = $props();
+  let {
+    plant,
+    photo,
+    lastWater,
+    selected = false,
+    health,
+    nextDue = null,
+  }: { plant: Plant; photo?: Photo; lastWater?: string; selected?: boolean; health?: HealthState; nextDue?: string | null } = $props();
 
-  const waterLabel = $derived(lastWater ? relativeDays(daysBetween(lastWater, todayLocal())) : 'jamais arrosée');
+  const water = $derived.by(() => {
+    const today = todayLocal();
+    if (nextDue) {
+      const d = daysBetween(today, nextDue);
+      if (d < 0) return { text: `💧 en retard de ${-d} j`, cls: 'bad' };
+      if (d === 0) return { text: '💧 à arroser', cls: 'warn' };
+      return { text: d === 1 ? '💧 demain' : `💧 dans ${d} j`, cls: '' };
+    }
+    return { text: `💧 ${lastWater ? relativeDays(daysBetween(lastWater, today)) : 'jamais arrosée'}`, cls: '' };
+  });
 </script>
 
 <a class="card glass" class:selected href={`#/plante/${encodeURIComponent(plant.id)}`}>
@@ -21,7 +37,7 @@
   <div class="info">
     <strong>{plant.name}</strong>
     {#if plant.species}<span class="muted species">{plant.species}</span>{/if}
-    <span class="chip">💧 {waterLabel}</span>
+    <span class="chip {water.cls}">{water.text}</span>
   </div>
   <span class="chev" aria-hidden="true">›</span>
 </a>
