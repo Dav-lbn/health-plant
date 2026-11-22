@@ -120,12 +120,12 @@
 
   {#if notFound}
     <p class="muted">Ce diagnostic n’existe plus.</p>
-  {:else if !d || working || d.status === 'en-cours'}
+  {:else if !d || working}
     <Analyzing text={d ? `Analyse par ${PROVIDER_LABELS[d.provider]}…` : 'Chargement…'} />
-  {:else if d.status === 'erreur'}
+  {:else if d.status === 'erreur' || d.status === 'en-cours'}
     <div class="glass card err">
       <span class="big">⚠️</span>
-      <p role="alert">{d.error}</p>
+      <p role="alert">{d.status === 'en-cours' ? 'Analyse interrompue (application fermée pendant l’analyse).' : d.error}</p>
       <button class="btn btn-primary" onclick={retry}>↻ Réessayer</button>
       {#if canOther}
         <button class="btn" onclick={secondOpinion}>Essayer avec {PROVIDER_LABELS[other]}</button>

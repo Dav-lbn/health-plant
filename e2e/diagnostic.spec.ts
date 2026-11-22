@@ -120,3 +120,35 @@ test('quota atteint puis réessai', async ({ page }) => {
   await page.getByRole('button', { name: '↻ Réessayer' }).click();
   await expect(page.locator('.hero').getByText('Malade')).toBeVisible();
 });
+
+test('analyse interrompue (application fermée) → relançable', async ({ page }) => {
+  await page.route('https://generativelanguage.googleapis.com/**', async (route) => {
+    if (route.request().method() === 'GET') {
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ models: [{ name: 'models/gemini-2.5-flash', supportedGenerationMethods: ['generateContent'] }] }) });
+    }
+    return route.fulfill(reply(SICK));
+  });
+  await setup(page);
+  const plantId = page.url().split('/plante/')[1];
+  await page.evaluate(async (pid) => {
+    const req = indexedDB.open('health-plant');
+    const db: IDBDatabase = await new Promise((r) => (req.onsuccess = () => r(req.result)));
+    const photoId: string = await new Promise((r) => {
+      const q = db.transaction('photos').objectStore('photos').getAll();
+      q.onsuccess = () => r(q.result[0].id);
+    });
+    await new Promise((r) => {
+      const tx = db.transaction('diagnoses', 'readwrite');
+      tx.objectStore('diagnoses').put({
+        id: 'stuck', plantId: pid, createdAt: new Date().toISOString(), date: '2026-11-22', provider: 'gemini', model: '',
+        photoIds: [photoId], photoKinds: ['ensemble'], answers: [], status: 'en-cours', error: null, result: null,
+      });
+      tx.oncomplete = r;
+    });
+  }, plantId);
+  await page.goto(`./#/plante/${plantId}/diagnostic/stuck`);
+  await page.reload();
+  await expect(page.getByText('Analyse interrompue')).toBeVisible();
+  await page.getByRole('button', { name: '↻ Réessayer' }).click();
+  await expect(page.locator('.hero').getByText('Malade')).toBeVisible();
+});
