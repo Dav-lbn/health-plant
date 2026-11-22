@@ -12,6 +12,7 @@
     <aside class="pane-list">
       {@render list()}
       <nav class="side-nav">
+        <a class="btn btn-primary add" href="#/nouvelle-plante" aria-label="Ajouter une plante">＋</a>
         <a class="btn" class:active={r !== 'settings'} href="#/">🌿 Plantes</a>
         <a class="btn" class:active={r === 'settings'} href="#/reglages">⚙️ Réglages</a>
       </nav>
@@ -103,6 +104,12 @@
   .side-nav .btn {
     flex: 1;
     font-size: 0.9rem;
+  }
+  .side-nav .add {
+    flex: none;
+    width: 48px;
+    padding: 0;
+    font-size: 1.4rem;
   }
   .side-nav .active {
     background: rgba(70, 227, 138, 0.16);

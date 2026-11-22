@@ -138,6 +138,7 @@
 <style>
   .detail {
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
     gap: 18px;
     padding-bottom: 24px;
   }

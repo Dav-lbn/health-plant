@@ -125,8 +125,6 @@
     z-index: 20;
   }
   :global(.split) .fab {
-    right: auto;
-    left: calc(min(40%, 420px) - 70px);
-    bottom: calc(24px + var(--safe-bottom));
+    display: none;
   }
 </style>

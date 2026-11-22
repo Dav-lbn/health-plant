@@ -85,11 +85,20 @@
 
 <style>
   .actions {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    display: flex;
     gap: 8px;
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+    margin: 0 -16px;
+    padding: 2px 16px 6px;
+    scrollbar-width: none;
+  }
+  .actions::-webkit-scrollbar {
+    display: none;
   }
   .care {
+    flex: 1 0 84px;
+    scroll-snap-align: start;
     display: grid;
     justify-items: center;
     gap: 2px;
@@ -125,10 +134,5 @@
   .hint {
     font-size: 0.75rem;
     margin: 6px 4px 0;
-  }
-  @media (max-width: 360px) {
-    .name {
-      font-size: 0.7rem;
-    }
   }
 </style>
