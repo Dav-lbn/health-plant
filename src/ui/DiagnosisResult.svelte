@@ -270,6 +270,10 @@
     justify-items: center;
     text-align: center;
   }
+  .err p {
+    white-space: pre-line;
+    overflow-wrap: anywhere;
+  }
   .big {
     font-size: 2.6rem;
   }

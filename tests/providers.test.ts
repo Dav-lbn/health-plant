@@ -1,13 +1,14 @@
 import { afterEach, describe, test, expect, vi } from 'vitest';
 import { gemini } from '../src/lib/ai/gemini';
 import { mistral } from '../src/lib/ai/mistral';
-import { toAiError, pickDefaultModel } from '../src/lib/ai/provider';
+import { toAiError, pickDefaultModel, setRetryDelays } from '../src/lib/ai/provider';
 import { AiError } from '../src/lib/ai/parse';
 
 const img = { mimeType: 'image/jpeg', base64: 'AAAA' };
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
 
+setRetryDelays([0, 0]);
 afterEach(() => vi.unstubAllGlobals());
 
 describe('Gemini', () => {
@@ -69,7 +70,7 @@ describe('Mistral', () => {
 
 describe('erreurs', () => {
   test.each([
-    [401, 'cle'], [403, 'cle'], [404, 'modele'], [429, 'quota'], [503, 'reseau'],
+    [401, 'cle'], [403, 'cle'], [404, 'modele'], [429, 'quota'], [500, 'surcharge'], [503, 'surcharge'], [413, 'reponse'],
   ])('HTTP %i → %s', (status, kind) => {
     expect(toAiError(status).kind).toBe(kind);
   });
@@ -103,4 +104,50 @@ describe('pickDefaultModel', () => {
     expect(pickDefaultModel('mistral', ['pixtral-12b-latest', 'x'])).toBe('pixtral-12b-latest');
   });
   test('liste vide → null', () => expect(pickDefaultModel('gemini', [])).toBeNull());
+});
+
+describe('surcharge et détails', () => {
+  test('503 répété → surcharge avec détail, 3 tentatives', async () => {
+    const f = vi.fn(async () => json({ error: { message: 'The model is overloaded. Please try again later.' } }, 503));
+    vi.stubGlobal('fetch', f);
+    const err = await gemini.generateJson({ key: 'K', model: 'm', prompt: 'P', images: [] }).catch((e) => e);
+    expect(err).toBeInstanceOf(AiError);
+    expect(err.kind).toBe('surcharge');
+    expect(err.message).toBe('L’IA est surchargée pour le moment. Réessayez dans quelques instants.');
+    expect(err.detail).toBe('HTTP 503 — The model is overloaded. Please try again later.');
+    expect(f).toHaveBeenCalledTimes(3);
+  });
+
+  test('503 puis succès → réponse renvoyée', async () => {
+    const f = vi
+      .fn()
+      .mockResolvedValueOnce(json({ error: { message: 'overloaded' } }, 503))
+      .mockResolvedValueOnce(json({ candidates: [{ content: { parts: [{ text: '{"a":1}' }] } }] }));
+    vi.stubGlobal('fetch', f);
+    expect(await gemini.generateJson({ key: 'K', model: 'm', prompt: 'P', images: [] })).toBe('{"a":1}');
+    expect(f).toHaveBeenCalledTimes(2);
+  });
+
+  test('429 non réessayé, détail conservé', async () => {
+    const f = vi.fn(async () => json({ error: { message: 'Resource has been exhausted' } }, 429));
+    vi.stubGlobal('fetch', f);
+    const err = await gemini.generateJson({ key: 'K', model: 'm', prompt: 'P', images: [] }).catch((e) => e);
+    expect(err.kind).toBe('quota');
+    expect(err.detail).toBe('HTTP 429 — Resource has been exhausted');
+    expect(f).toHaveBeenCalledTimes(1);
+  });
+
+  test('erreur réseau : détail technique', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => { throw new TypeError('Failed to fetch'); }));
+    const err = await gemini.listModels('K').catch((e) => e);
+    expect(err.kind).toBe('reseau');
+    expect(err.detail).toBe('TypeError: Failed to fetch');
+  });
+
+  test('400 autre → reponse avec détail', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => json({ error: { message: 'Request payload size exceeds the limit' } }, 400)));
+    const err = await gemini.generateJson({ key: 'K', model: 'm', prompt: 'P', images: [] }).catch((e) => e);
+    expect(err.kind).toBe('requete');
+    expect(err.detail).toBe('HTTP 400 — Request payload size exceeds the limit');
+  });
 });

@@ -20,21 +20,28 @@ export interface AnalysisProvider {
 }
 
 export function toAiError(status: number, message = ''): AiError {
-  if (status === 401 || status === 403) return new AiError('cle');
-  if (status === 400 && /api.?key|unauthori[sz]ed|invalid.*key/i.test(message)) return new AiError('cle');
-  if (status === 404) return new AiError('modele');
-  if (status === 429) return new AiError('quota');
-  if (status === 400) return new AiError('reponse');
-  return new AiError('reseau');
+  const detail = `HTTP ${status}${message ? ` — ${message}` : ''}`;
+  if (status === 401 || status === 403) return new AiError('cle', detail);
+  if (status === 400 && /api.?key|unauthori[sz]ed|invalid.*key/i.test(message)) return new AiError('cle', detail);
+  if (status === 404) return new AiError('modele', detail);
+  if (status === 429) return new AiError('quota', detail);
+  if (status >= 500) return new AiError('surcharge', detail);
+  if (status === 400) return new AiError('requete', detail);
+  return new AiError('reponse', detail);
 }
 
-/** fetch qui convertit toute erreur réseau ou HTTP en AiError, et renvoie le JSON. */
-export async function requestJson(url: string, init: RequestInit): Promise<unknown> {
+let retryDelays = [1500, 4000];
+/** Délais entre les tentatives après une surcharge (tests : [0, 0]). */
+export function setRetryDelays(d: number[]): void {
+  retryDelays = d;
+}
+
+async function once(url: string, init: RequestInit): Promise<unknown> {
   let res: Response;
   try {
     res = await fetch(url, init);
-  } catch {
-    throw new AiError('reseau');
+  } catch (e) {
+    throw new AiError('reseau', e instanceof Error ? `${e.name}: ${e.message}` : String(e));
   }
   if (!res.ok) {
     let message = '';
@@ -44,12 +51,27 @@ export async function requestJson(url: string, init: RequestInit): Promise<unkno
     } catch {
       /* corps illisible */
     }
-    throw toAiError(res.status, message);
+    throw toAiError(res.status, message.trim().slice(0, 300));
   }
   try {
     return await res.json();
   } catch {
-    throw new AiError('reponse');
+    throw new AiError('reponse', 'Corps de réponse non JSON');
+  }
+}
+
+/** fetch → JSON ; toute erreur devient AiError ; réessaie en cas de surcharge (5xx). */
+export async function requestJson(url: string, init: RequestInit): Promise<unknown> {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await once(url, init);
+    } catch (e) {
+      if (e instanceof AiError && e.kind === 'surcharge' && attempt < retryDelays.length) {
+        await new Promise((r) => setTimeout(r, retryDelays[attempt]));
+        continue;
+      }
+      throw e;
+    }
   }
 }
 

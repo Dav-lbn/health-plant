@@ -121,10 +121,15 @@ export async function runDiagnosis(id: string, deps: AiDeps = {}): Promise<Diagn
     d.status = result.confidence < 0.6 && result.questions.length > 0 && d.answers.length === 0 ? 'questions' : 'termine';
   } catch (e) {
     d.status = 'erreur';
-    d.error = e instanceof AiError ? e.message : 'Analyse impossible. Réessayez.';
+    d.error = errorText(e);
   }
   await saveDiagnosis(d);
   return d;
+}
+
+export function errorText(e: unknown): string {
+  if (e instanceof AiError) return e.detail ? `${e.message}\nDétail : ${e.detail}` : e.message;
+  return `Analyse impossible. Réessayez.${e instanceof Error ? `\nDétail : ${e.message}` : ''}`;
 }
 
 export async function answerQuestions(

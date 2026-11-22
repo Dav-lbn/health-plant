@@ -1,7 +1,7 @@
 import { CARE_TYPES, HEALTH_STATES, TRENDS } from '../types';
 import type { CareType, DiagnosisResult, HealthState, Problem, RecommendedAction, SpeciesSheet, Trend } from '../types';
 
-export type AiErrorKind = 'cle' | 'quota' | 'reseau' | 'reponse' | 'modele';
+export type AiErrorKind = 'cle' | 'quota' | 'reseau' | 'reponse' | 'modele' | 'surcharge' | 'requete';
 
 const MESSAGES: Record<AiErrorKind, string> = {
   cle: 'Clé API refusée. Vérifiez-la dans les Réglages.',
@@ -9,10 +9,15 @@ const MESSAGES: Record<AiErrorKind, string> = {
   reseau: 'Pas de connexion à l’IA. Vérifiez internet (ou le relais pour Mistral).',
   reponse: 'Réponse de l’IA illisible. Réessayez.',
   modele: 'Modèle indisponible, choisissez-en un autre dans les Réglages.',
+  surcharge: 'L’IA est surchargée pour le moment. Réessayez dans quelques instants.',
+  requete: 'L’IA a refusé la demande. Essayez un autre modèle dans les Réglages.',
 };
 
 export class AiError extends Error {
-  constructor(public kind: AiErrorKind) {
+  constructor(
+    public kind: AiErrorKind,
+    public detail = '',
+  ) {
     super(MESSAGES[kind]);
     this.name = 'AiError';
   }

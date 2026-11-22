@@ -59,7 +59,7 @@
       status[id] = { ok: true, text: `✓ Clé valide — ${list.length} modèle${list.length > 1 ? 's' : ''}` };
       vibrate('success');
     } catch (e) {
-      status[id] = { ok: false, text: e instanceof AiError ? e.message : 'Test impossible.' };
+      status[id] = { ok: false, text: e instanceof AiError ? (e.detail ? `${e.message} (${e.detail})` : e.message) : 'Test impossible.' };
     } finally {
       testing = null;
     }
