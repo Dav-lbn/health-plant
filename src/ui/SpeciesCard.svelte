@@ -19,7 +19,7 @@
       vibrate('success');
       showToast('Fiche d’espèce générée');
     } catch (e) {
-      error = e instanceof AiError ? e.message : 'Génération impossible.';
+      error = e instanceof AiError ? (e.detail ? `${e.message} (${e.detail})` : e.message) : 'Génération impossible.';
     } finally {
       busy = false;
     }

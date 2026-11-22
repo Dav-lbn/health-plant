@@ -104,6 +104,15 @@ describe('diagnostic', () => {
     expect(d2.error).toBeNull();
   });
 
+  test('erreur avec détail technique enregistrée', async () => {
+    const p = await plant();
+    const err = new AiError('surcharge', 'HTTP 503 — overloaded');
+    const { provider } = fakeProvider(err);
+    const d = await startDiagnosis(p.id, [{ kind: 'ensemble', file: jpeg() }], 'gemini', { settings, providerOverride: provider, storePhoto });
+    expect(d.status).toBe('erreur');
+    expect(d.error).toBe('L’IA est surchargée pour le moment. Réessayez dans quelques instants.\nDétail : HTTP 503 — overloaded');
+  });
+
   test('clé absente → erreur clé, sans appel', async () => {
     const p = await plant();
     const d = await startDiagnosis(p.id, [{ kind: 'ensemble', file: jpeg() }], 'mistral', { settings, storePhoto });
