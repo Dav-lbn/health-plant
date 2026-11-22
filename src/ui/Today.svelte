@@ -73,7 +73,7 @@
 
   {#if app.loaded && !app.plants.length}
     <EmptyState title="Bienvenue !" text="Ajoutez votre première plante : ses soins apparaîtront ici chaque jour.">
-      <a class="btn btn-primary" href="#/nouvelle-plante">＋ Ajouter une plante</a>
+      <a class="btn btn-primary" href="#/nouvelle-plante">＋ Ajouter ma première plante</a>
     </EmptyState>
   {:else if app.loaded}
     {#if late.length}
