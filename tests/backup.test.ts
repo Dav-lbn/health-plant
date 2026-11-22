@@ -32,7 +32,7 @@ describe('export / import', () => {
     const { a } = await seed();
     const file = JSON.parse(JSON.stringify(await exportAll()));
     expect(file.app).toBe('health-plant');
-    expect(file.version).toBe(1);
+    expect(file.version).toBe(2);
     await Promise.all(db.tables.map((t) => t.clear()));
     await importAll(file);
     expect((await listRooms()).map((r) => r.name)).toEqual(['Salon']);
@@ -65,5 +65,46 @@ describe('export / import', () => {
     expect(await lastExportDate()).toBeNull();
     await exportAll();
     expect(await lastExportDate()).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+  });
+});
+
+describe('sauvegarde v2', () => {
+  test('aller-retour avec diagnostics et fiche d’espèce', async () => {
+    const { a } = await seed();
+    await db.plants.update(a.id, {
+      speciesSheet: { species: 'Monstera deliciosa', light: 'vive', water: 'modéré', humidity: '60%', temperature: '18-27', toxicity: 'Toxique', tips: ['t'], frequencies: { arrosage: 7 }, generatedAt: '2026-11-22T10:00:00Z', provider: 'gemini' },
+    });
+    await db.diagnoses.add({
+      id: 'd1', plantId: a.id, createdAt: '2026-11-22T10:00:00Z', date: '2026-11-22', provider: 'gemini', model: 'm',
+      photoIds: ['ph1'], photoKinds: ['ensemble'], answers: [], status: 'termine', error: null,
+      result: { state: 'bon', summary: 's', problems: [], actions: [], confidence: 0.9, questions: [], trend: 'inconnue', suggestedSpecies: null },
+    });
+    await db.meta.put({ key: 'ai', value: { gemini: { key: 'SECRET-KEY' } } });
+    const file = JSON.parse(JSON.stringify(await exportAll()));
+    expect(file.version).toBe(2);
+    expect(JSON.stringify(file)).not.toContain('SECRET-KEY');
+    await Promise.all(db.tables.map((t) => t.clear()));
+    await importAll(file);
+    expect(await db.diagnoses.count()).toBe(1);
+    expect((await db.plants.get(a.id))?.speciesSheet?.toxicity).toBe('Toxique');
+  });
+
+  test('un fichier v1 s’importe', async () => {
+    await seed();
+    const file = JSON.parse(JSON.stringify(await exportAll()));
+    file.version = 1;
+    delete file.diagnoses;
+    for (const p of file.plants) delete p.speciesSheet;
+    await Promise.all(db.tables.map((t) => t.clear()));
+    await importAll(file);
+    expect(await listPlants()).toHaveLength(2);
+    expect((await listPlants())[0].speciesSheet).toBeNull();
+  });
+
+  test('diagnostic vers plante inexistante refusé', async () => {
+    await seed();
+    const file = JSON.parse(JSON.stringify(await exportAll()));
+    file.diagnoses = [{ id: 'd', plantId: 'nope', createdAt: 'x', date: '2026-11-22', provider: 'gemini', model: 'm', photoIds: [], photoKinds: [], answers: [], status: 'termine', error: null, result: null }];
+    await expect(importAll(file)).rejects.toThrow('Fichier de sauvegarde invalide');
   });
 });

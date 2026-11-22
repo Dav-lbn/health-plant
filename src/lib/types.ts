@@ -17,6 +17,7 @@ export interface Plant {
   notes: string;
   photoId: string | null;
   careFrequencyDays: Partial<Record<CareType, number>>;
+  speciesSheet: SpeciesSheet | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -69,3 +70,74 @@ export const CARE_ICONS: Record<CareType, string> = {
   taille: '✂️',
   traitement: '💊',
 };
+
+export type HealthState = 'bon' | 'surveiller' | 'malade';
+export type Trend = 'mieux' | 'stable' | 'moins-bien' | 'inconnue';
+export type ProviderId = 'gemini' | 'mistral';
+export type PhotoKind = 'ensemble' | 'gros-plan' | 'dessous' | 'terre';
+
+export interface Problem {
+  name: string;
+  cause: string;
+  severity: 'faible' | 'moyenne' | 'forte';
+}
+
+export interface RecommendedAction {
+  action: string;
+  careType: CareType | null;
+  priority: 'haute' | 'moyenne' | 'basse';
+  delayDays: number;
+  doneAt: string | null;
+}
+
+export interface DiagnosisResult {
+  state: HealthState;
+  summary: string;
+  problems: Problem[];
+  actions: RecommendedAction[];
+  confidence: number;
+  questions: string[];
+  trend: Trend;
+  suggestedSpecies: string | null;
+}
+
+export interface Diagnosis {
+  id: string;
+  plantId: string;
+  createdAt: string;
+  date: string;
+  provider: ProviderId;
+  model: string;
+  photoIds: string[];
+  photoKinds: PhotoKind[];
+  answers: { question: string; answer: string }[];
+  status: 'en-cours' | 'questions' | 'termine' | 'erreur';
+  error: string | null;
+  result: DiagnosisResult | null;
+}
+
+export interface SpeciesSheet {
+  species: string;
+  light: string;
+  water: string;
+  humidity: string;
+  temperature: string;
+  toxicity: string;
+  tips: string[];
+  frequencies: Partial<Record<CareType, number>>;
+  generatedAt: string;
+  provider: ProviderId;
+}
+
+export const HEALTH_STATES: HealthState[] = ['bon', 'surveiller', 'malade'];
+export const STATE_LABELS: Record<HealthState, string> = { bon: 'En forme', surveiller: 'À surveiller', malade: 'Malade' };
+export const TRENDS: Trend[] = ['mieux', 'stable', 'moins-bien', 'inconnue'];
+export const TREND_LABELS: Record<Trend, string> = { mieux: 'Mieux', stable: 'Stable', 'moins-bien': 'Moins bien', inconnue: '—' };
+export const PHOTO_KINDS: PhotoKind[] = ['ensemble', 'gros-plan', 'dessous', 'terre'];
+export const PHOTO_KIND_LABELS: Record<PhotoKind, string> = {
+  ensemble: "Vue d'ensemble",
+  'gros-plan': 'Gros plan',
+  dessous: 'Dessous des feuilles',
+  terre: 'Terre',
+};
+export const PROVIDER_LABELS: Record<ProviderId, string> = { gemini: 'Gemini', mistral: 'Mistral' };
