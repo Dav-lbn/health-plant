@@ -17,6 +17,8 @@ async function photo(page: Page, color: string): Promise<Buffer> {
   return Buffer.from(b64, 'base64');
 }
 
+const isProbe = (route: Route) => route.request().method() === 'POST' && JSON.stringify(route.request().postDataJSON()).includes('{\\"ok\\": true}');
+
 const reply = (obj: unknown) => ({
   status: 200,
   contentType: 'application/json',
@@ -43,7 +45,7 @@ async function setup(page: Page) {
   await page.goto('./#/reglages');
   await page.getByLabel('Clé API Gemini').fill('TEST-KEY-123');
   await page.getByRole('button', { name: 'Tester et choisir le modèle' }).first().click();
-  await expect(page.getByText('✓ Clé valide — 1 modèle')).toBeVisible();
+  await expect(page.getByText('✓ Clé valide — modèle gratuit : gemini-2.5-flash')).toBeVisible();
   await page.goto('./#/nouvelle-plante');
   await page.getByLabel('Nom *').fill('Monstera');
   await page.getByLabel("Quantité d'eau habituelle (mL)").fill('200');
@@ -61,6 +63,7 @@ test('diagnostic complet avec questions, action faite et fiche d’espèce', asy
       return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ models: [{ name: 'models/gemini-2.5-flash', supportedGenerationMethods: ['generateContent'] }] }) });
     }
     expect(req.headers()['x-goog-api-key']).toBe('TEST-KEY-123');
+    if (isProbe(route)) return route.fulfill(reply({ ok: true }));
     const body = req.postDataJSON();
     prompts.push(body.contents[0].parts[0].text);
     n++;
@@ -108,6 +111,7 @@ test('quota atteint puis réessai', async ({ page }) => {
     if (route.request().method() === 'GET') {
       return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ models: [{ name: 'models/gemini-2.5-flash', supportedGenerationMethods: ['generateContent'] }] }) });
     }
+    if (isProbe(route)) return route.fulfill(reply({ ok: true }));
     if (fail) return route.fulfill({ status: 429, contentType: 'application/json', body: '{"error":{"message":"quota"}}' });
     return route.fulfill(reply(SICK));
   });
@@ -126,6 +130,7 @@ test('analyse interrompue (application fermée) → relançable', async ({ page 
     if (route.request().method() === 'GET') {
       return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ models: [{ name: 'models/gemini-2.5-flash', supportedGenerationMethods: ['generateContent'] }] }) });
     }
+    if (isProbe(route)) return route.fulfill(reply({ ok: true }));
     return route.fulfill(reply(SICK));
   });
   await setup(page);
@@ -151,4 +156,29 @@ test('analyse interrompue (application fermée) → relançable', async ({ page 
   await expect(page.getByText('Analyse interrompue')).toBeVisible();
   await page.getByRole('button', { name: '↻ Réessayer' }).click();
   await expect(page.locator('.hero').getByText('Malade')).toBeVisible();
+});
+
+test('Tester choisit automatiquement un modèle gratuit', async ({ page }) => {
+  const tried: string[] = [];
+  await page.route('https://generativelanguage.googleapis.com/**', async (route) => {
+    const url = route.request().url();
+    if (route.request().method() === 'GET') {
+      return route.fulfill({
+        status: 200, contentType: 'application/json',
+        body: JSON.stringify({ models: ['gemini-3-flash', 'gemini-2.5-flash', 'gemini-flash-lite-latest'].map((m) => ({ name: `models/${m}`, supportedGenerationMethods: ['generateContent'] })) }),
+      });
+    }
+    const model = /models\/([^:]+):/.exec(url)![1];
+    tried.push(model);
+    if (model !== 'gemini-flash-lite-latest') {
+      return route.fulfill({ status: 429, contentType: 'application/json', body: JSON.stringify({ error: { message: `Quota exceeded for metric: x, limit: 0, model: ${model}` } }) });
+    }
+    return route.fulfill(reply({ ok: true }));
+  });
+  await page.goto('./#/reglages');
+  await page.getByLabel('Clé API Gemini').fill('TEST-KEY-123');
+  await page.getByRole('button', { name: 'Tester et choisir le modèle' }).first().click();
+  await expect(page.getByText('✓ Clé valide — modèle gratuit : gemini-flash-lite-latest')).toBeVisible();
+  await expect(page.getByLabel('Modèle Gemini')).toHaveValue('gemini-flash-lite-latest');
+  expect(tried).toEqual(['gemini-3-flash', 'gemini-2.5-flash', 'gemini-flash-lite-latest']);
 });

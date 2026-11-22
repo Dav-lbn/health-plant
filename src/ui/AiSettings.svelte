@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { loadAiSettings, saveAiSettings, providerInstance, defaultAiSettings, type AiSettings } from '../lib/ai/settings';
-  import { pickDefaultModel } from '../lib/ai/provider';
+  import { findFreeModel, rankModels } from '../lib/ai/provider';
   import { AiError } from '../lib/ai/parse';
   import { MISTRAL_API } from '../lib/ai/mistral';
   import { PROVIDER_LABELS } from '../lib/types';
@@ -12,6 +12,7 @@
   let models = $state<Record<ProviderId, string[]>>({ gemini: [], mistral: [] });
   let status = $state<Record<ProviderId, { ok: boolean; text: string } | null>>({ gemini: null, mistral: null });
   let testing = $state<ProviderId | null>(null);
+  let testingText = $state('');
   let show = $state<Record<ProviderId, boolean>>({ gemini: false, mistral: false });
   let loaded = $state(false);
 
@@ -45,21 +46,32 @@
       return;
     }
     testing = id;
+    testingText = 'Vérification de la clé…';
     try {
       if (id === 'mistral' && !s.mistral.base.trim()) s.mistral.base = MISTRAL_API;
-      const list = await providerInstance(id, s).listModels(key);
+      const provider = providerInstance(id, s);
+      const list = await provider.listModels(key);
       if (!list.length) {
         status[id] = { ok: false, text: 'Clé valide, mais aucun modèle capable d’analyser des photos.' };
         return;
       }
-      models[id] = list;
-      if (!s[id].model || !list.includes(s[id].model)) s[id].model = pickDefaultModel(id, list) ?? list[0];
+      const ranked = rankModels(id, list);
+      models[id] = ranked;
       s[id].key = key;
+      testingText = 'Recherche d’un modèle gratuit…';
+      const free = await findFreeModel(provider, key, ranked);
+      if (free) {
+        s[id].model = free;
+        status[id] = { ok: true, text: `✓ Clé valide — modèle gratuit : ${free}` };
+        vibrate('success');
+      } else {
+        if (!s[id].model || !ranked.includes(s[id].model)) s[id].model = ranked[0];
+        status[id] = {
+          ok: false,
+          text: 'Clé valide, mais aucun modèle n’a répondu gratuitement pour l’instant (quota ou surcharge). Réessayez plus tard ou choisissez un modèle ci-dessous.',
+        };
+      }
       await persist();
-      status[id] = { ok: true, text: `✓ Clé valide — ${list.length} modèle${list.length > 1 ? 's' : ''}` };
-      vibrate('success');
-    } catch (e) {
-      status[id] = { ok: false, text: e instanceof AiError ? (e.detail ? `${e.message} (${e.detail})` : e.message) : 'Test impossible.' };
     } finally {
       testing = null;
     }
@@ -108,7 +120,7 @@
         <a class="small" href={RELAY_HELP} target="_blank" rel="noopener">Comment créer le relais ↗</a>
       {/if}
       <button class="btn" onclick={() => test(id)} disabled={testing === id}>
-        {testing === id ? 'Test en cours…' : 'Tester et choisir le modèle'}
+        {testing === id ? testingText : 'Tester et choisir le modèle'}
       </button>
       {#if status[id]}
         <p class="status" class:ok={status[id]?.ok} role="status">{status[id]?.text}</p>

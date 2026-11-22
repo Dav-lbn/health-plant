@@ -1,7 +1,7 @@
 import { CARE_TYPES, HEALTH_STATES, TRENDS } from '../types';
 import type { CareType, DiagnosisResult, HealthState, Problem, RecommendedAction, SpeciesSheet, Trend } from '../types';
 
-export type AiErrorKind = 'cle' | 'quota' | 'reseau' | 'reponse' | 'modele' | 'surcharge' | 'requete';
+export type AiErrorKind = 'cle' | 'quota' | 'reseau' | 'reponse' | 'modele' | 'surcharge' | 'requete' | 'payant';
 
 const MESSAGES: Record<AiErrorKind, string> = {
   cle: 'Clé API refusée. Vérifiez-la dans les Réglages.',
@@ -11,6 +11,7 @@ const MESSAGES: Record<AiErrorKind, string> = {
   modele: 'Modèle indisponible, choisissez-en un autre dans les Réglages.',
   surcharge: 'L’IA est surchargée pour le moment. Réessayez dans quelques instants.',
   requete: 'L’IA a refusé la demande. Essayez un autre modèle dans les Réglages.',
+  payant: 'Ce modèle n’est pas inclus dans l’offre gratuite. Dans les Réglages, touchez « Tester » pour en choisir un gratuit.',
 };
 
 export class AiError extends Error {
