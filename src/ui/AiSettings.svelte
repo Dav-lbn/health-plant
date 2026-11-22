@@ -13,6 +13,7 @@
   let status = $state<Record<ProviderId, { ok: boolean; text: string } | null>>({ gemini: null, mistral: null });
   let testing = $state<ProviderId | null>(null);
   let show = $state<Record<ProviderId, boolean>>({ gemini: false, mistral: false });
+  let loaded = $state(false);
 
   const LINKS: Record<ProviderId, string> = {
     gemini: 'https://aistudio.google.com/app/apikey',
@@ -23,6 +24,7 @@
   onMount(async () => {
     s = await loadAiSettings();
     for (const id of ['gemini', 'mistral'] as ProviderId[]) if (s[id].model) models[id] = [s[id].model];
+    loaded = true;
   });
 
   async function persist() {
@@ -67,6 +69,7 @@
 <section class="glass block">
   <h2>Intelligence artificielle</h2>
   <p class="muted small">Vos clés restent sur ce téléphone et ne sont jamais exportées.</p>
+  {#if loaded}
 
   <span class="label">IA utilisée par défaut</span>
   <div class="seg">
@@ -120,6 +123,7 @@
       {/if}
     </div>
   {/each}
+  {/if}
 </section>
 
 <style>

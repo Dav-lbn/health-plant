@@ -89,6 +89,8 @@
     border-right: 1px solid var(--glass-border);
     background: rgba(0, 0, 0, 0.15);
     position: relative;
+    display: flex;
+    flex-direction: column;
   }
   .pane-detail {
     overflow-y: auto;
@@ -97,6 +99,7 @@
   .side-nav {
     position: sticky;
     bottom: 0;
+    margin-top: auto;
     display: flex;
     gap: 8px;
     padding-top: 12px;
