@@ -7,6 +7,8 @@
   import PlantForm from './ui/PlantForm.svelte';
   import Settings from './ui/Settings.svelte';
   import Toast from './ui/Toast.svelte';
+  import DiagnosisFlow from './ui/DiagnosisFlow.svelte';
+  import DiagnosisResult from './ui/DiagnosisResult.svelte';
 
   let wide = $state(false);
 
@@ -20,7 +22,7 @@
   });
 
   const r = $derived(app.route);
-  const selectedId = $derived(r.name === 'plant' || r.name === 'plant-edit' ? r.id : null);
+  const selectedId = $derived('id' in r ? r.id : null);
 </script>
 
 {#snippet list()}
@@ -28,12 +30,16 @@
 {/snippet}
 
 {#snippet detail()}
-  {#key r.name + (selectedId ?? '')}
+  {#key r.name + (selectedId ?? '') + (r.name === 'diagnosis' ? r.diagId : '')}
     <div class="page">
       {#if r.name === 'plant'}
         <PlantDetail id={r.id} />
       {:else if r.name === 'plant-edit'}
         <PlantForm id={r.id} />
+      {:else if r.name === 'diagnose'}
+        <DiagnosisFlow id={r.id} />
+      {:else if r.name === 'diagnosis'}
+        <DiagnosisResult id={r.id} diagId={r.diagId} />
       {:else if r.name === 'plant-new'}
         <PlantForm />
       {:else if r.name === 'settings'}

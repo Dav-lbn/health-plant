@@ -1,9 +1,10 @@
 <script lang="ts">
-  import type { Plant, Photo } from '../lib/types';
+  import type { Plant, Photo, HealthState } from '../lib/types';
+  import { STATE_LABELS } from '../lib/types';
   import { photoUrl } from '../lib/photos';
   import { daysBetween, relativeDays, todayLocal } from '../lib/dates';
 
-  let { plant, photo, lastWater, selected = false }: { plant: Plant; photo?: Photo; lastWater?: string; selected?: boolean } = $props();
+  let { plant, photo, lastWater, selected = false, health }: { plant: Plant; photo?: Photo; lastWater?: string; selected?: boolean; health?: HealthState } = $props();
 
   const waterLabel = $derived(lastWater ? relativeDays(daysBetween(lastWater, todayLocal())) : 'jamais arrosée');
 </script>
@@ -15,6 +16,7 @@
     {:else}
       <span aria-hidden="true">🪴</span>
     {/if}
+    {#if health}<span class="hdot {health}" title={STATE_LABELS[health]} aria-label={STATE_LABELS[health]}></span>{/if}
   </div>
   <div class="info">
     <strong>{plant.name}</strong>
@@ -57,6 +59,28 @@
     font-size: 30px;
     background: linear-gradient(145deg, rgba(70, 227, 138, 0.18), rgba(0, 0, 0, 0.3));
     border: 1px solid var(--glass-border);
+  }
+  .thumb {
+    position: relative;
+  }
+  .hdot {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid rgba(0, 0, 0, 0.6);
+    background: var(--ok);
+    box-shadow: 0 0 10px var(--ok);
+  }
+  .hdot.surveiller {
+    background: var(--warn);
+    box-shadow: 0 0 10px var(--warn);
+  }
+  .hdot.malade {
+    background: var(--bad);
+    box-shadow: 0 0 10px var(--bad);
   }
   .thumb img {
     width: 100%;

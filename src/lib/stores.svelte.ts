@@ -1,7 +1,7 @@
 import { parseHash, type Route } from './router';
-import { listAllCare, listPlants, listRooms } from './repo';
+import { listAllCare, listAllDiagnoses, listPlants, listRooms } from './repo';
 import { db } from './db';
-import type { CareEvent, Photo, Plant, Room } from './types';
+import type { CareEvent, Diagnosis, Photo, Plant, Room } from './types';
 
 export const app = $state({
   route: parseHash(typeof location !== 'undefined' ? location.hash : '') as Route,
@@ -9,6 +9,8 @@ export const app = $state({
   rooms: [] as Room[],
   care: [] as CareEvent[],
   thumbs: {} as Record<string, Photo>,
+  diagnoses: [] as Diagnosis[],
+  lastDiag: {} as Record<string, Diagnosis>,
   loaded: false,
 });
 
@@ -20,7 +22,7 @@ if (typeof window !== 'undefined') {
 
 /** Relit Dexie après chaque écriture. */
 export async function refresh(): Promise<void> {
-  const [plants, rooms, care] = await Promise.all([listPlants(), listRooms(), listAllCare()]);
+  const [plants, rooms, care, diagnoses] = await Promise.all([listPlants(), listRooms(), listAllCare(), listAllDiagnoses()]);
   const photoIds = plants.map((p) => p.photoId).filter((x): x is string => !!x);
   const photos = await db.photos.bulkGet(photoIds);
   const thumbs: Record<string, Photo> = {};
@@ -29,6 +31,10 @@ export async function refresh(): Promise<void> {
   app.rooms = rooms;
   app.care = care;
   app.thumbs = thumbs;
+  app.diagnoses = diagnoses;
+  const last: Record<string, Diagnosis> = {};
+  for (const d of diagnoses) if (d.status === 'termine' && !last[d.plantId]) last[d.plantId] = d;
+  app.lastDiag = last;
   app.loaded = true;
 }
 

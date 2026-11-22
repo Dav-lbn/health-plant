@@ -4,7 +4,7 @@
 
   let { list, detail, wide }: { list: Snippet; detail: Snippet | null; wide: boolean } = $props();
   const r = $derived(app.route.name);
-  const onList = $derived(r === 'plants' || r === 'plant' || r === 'plant-new' || r === 'plant-edit');
+  const onList = $derived(r !== 'settings');
 </script>
 
 {#if wide}
