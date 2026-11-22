@@ -88,12 +88,16 @@ tout autre smartphone récent.
   Activable / désactivable, heure de rappel réglable.
 
 ### Sauvegarde
-- **Sauvegarde automatique sur Google Drive** de l'utilisateur (dossier
-  réservé à l'application, invisible dans son Drive). Sauvegarde déclenchée
-  après des modifications et à l'ouverture si la dernière date de plus d'un
-  jour. Si la connexion Google a expiré, une reconnexion en un geste est
-  proposée.
-- Restauration depuis Drive (changement de téléphone).
+- **Sauvegarde automatique vers Google Drive et/ou kDrive** (Infomaniak),
+  au choix dans les réglages (l'un, l'autre ou les deux).
+  - Google Drive : dossier réservé à l'application, invisible dans le Drive.
+  - kDrive : dossier « Health Plant » dans le kDrive, via WebDAV, avec
+    l'identifiant du kDrive et un mot de passe d'application Infomaniak.
+- Sauvegarde déclenchée après des modifications et à l'ouverture si la
+  dernière date de plus d'un jour, vers chaque destination activée. Si une
+  connexion a expiré ou échoue, l'application le signale et propose de
+  réessayer / se reconnecter en un geste.
+- Restauration depuis la destination choisie (changement de téléphone).
 - Export / import manuel d'un fichier en complément.
 
 ### Design premium
@@ -126,7 +130,8 @@ tout autre smartphone récent.
 ## Contraintes
 
 - Coût nul : hébergement statique gratuit, offres gratuites (Gemini ; Mistral
-  « Experiment » ; ntfy.sh ; Google Drive).
+  « Experiment » ; ntfy.sh ; Google Drive ; kDrive existant de l'utilisateur ;
+  Cloudflare Workers si un relais est nécessaire).
 - Pas de serveur à maintenir : tout tourne dans le navigateur du téléphone.
 - Les clés d'API (une par IA) appartiennent à l'utilisateur, il les saisit une
   fois dans les réglages ; elles restent sur le téléphone, jamais dans le code
@@ -136,6 +141,7 @@ tout autre smartphone récent.
   - clé Mistral (vérification par téléphone) ;
   - identifiant OAuth Google pour Drive (projet Google Cloud gratuit,
     origine autorisée = adresse GitHub Pages) ;
+  - identifiant kDrive et mot de passe d'application Infomaniak ;
   - application ntfy installée sur le téléphone.
 - Confidentialité : sur les offres gratuites, Google et Mistral peuvent
   utiliser les photos envoyées pour améliorer leurs modèles. Accepté.
@@ -170,22 +176,28 @@ tout autre smartphone récent.
   réessayer.
 - **À vérifier en premier** : appels directs depuis le navigateur vers
   l'API Mistral (CORS) et accès aux modèles avec vision sur l'offre
-  gratuite ; idem pour l'envoi différé ntfy depuis le navigateur. Si un appel
+  gratuite ; idem pour l'envoi différé ntfy et pour WebDAV kDrive depuis le
+  navigateur (CORS probablement bloqué pour kDrive). Si un appel
   direct est bloqué : petit relais gratuit (Cloudflare Worker) qui transmet
   sans rien stocker.
-- **Drive** : Google Identity Services (jeton côté navigateur), portée
-  `drive.appdata`.
+- **Sauvegarde** : interface commune « destination de sauvegarde » avec deux
+  implémentations. Google Drive : Google Identity Services (jeton côté
+  navigateur), portée `drive.appdata`. kDrive : WebDAV
+  (`https://<id>.connect.kdrive.infomaniak.com`), taille du fichier connue à
+  l'envoi (exigence kDrive), via le relais si CORS bloque. Les identifiants
+  restent sur le téléphone ; le relais ne stocke rien.
 - **Écrans** : Aujourd'hui → Plantes (par pièce) → Fiche plante (infos,
   fiche d'espèce, soins rapides, bouton Diagnostiquer, chronologie) →
   Diagnostic (prise de vue guidée → analyse → questions éventuelles →
   résultat, avant/après, « ajouter aux tâches ») → Réglages (IA par défaut,
-  clés et modèles, pièces, notifications, sauvegarde Drive, export/import).
+  clés et modèles, pièces, notifications, sauvegardes Google Drive / kDrive,
+  export/import).
 - **Livraison par étapes**, chaque étape utilisable :
   1. socle, design, plantes, pièces, soins, stockage, export/import ;
   2. diagnostic (Gemini puis Mistral), plusieurs photos, confiance,
      questions, suivi d'évolution, fiche d'espèce ;
   3. écran Aujourd'hui, tâches, prévision d'arrosage ;
-  4. sauvegarde Google Drive, notifications ntfy.
+  4. sauvegardes Google Drive et kDrive, notifications ntfy.
 
 ## Laissé au réalisateur
 
