@@ -34,9 +34,9 @@
     <span class="ico">{task.careType ? CARE_ICONS[task.careType] : '🔬'}</span>
   </a>
   <div class="txt">
-    <p class="label">{task.label}{#if task.detail && task.kind === 'care'}<span class="muted"> · {task.detail}</span>{/if}</p>
+    <p class="label">{task.label}{#if task.detail && task.kind === 'care'}<span class="muted">{' · '}{task.detail}</span>{/if}</p>
     <p class="sub">
-      <strong>{plant.name}</strong> · <span class="due">{dueText(task)}</span>
+      <strong>{plant.name}</strong>{' · '}<span class="due">{dueText(task)}</span>
     </p>
     {#if task.kind === 'action' && task.detail}<p class="muted from">{task.detail}</p>{/if}
   </div>

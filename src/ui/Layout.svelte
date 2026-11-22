@@ -95,6 +95,8 @@
   }
   .side-nav .btn {
     position: relative;
+    overflow: visible;
+    white-space: nowrap;
   }
   .side-nav .pill {
     top: -4px;
