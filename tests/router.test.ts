@@ -6,11 +6,13 @@ test('parseHash', () => {
   expect(parseHash('#/plante/abc/modifier')).toEqual({ name: 'plant-edit', id: 'abc' });
   expect(parseHash('#/nouvelle-plante')).toEqual({ name: 'plant-new' });
   expect(parseHash('#/reglages')).toEqual({ name: 'settings' });
-  expect(parseHash('')).toEqual({ name: 'plants' });
-  expect(parseHash('#/nimporte')).toEqual({ name: 'plants' });
+  expect(parseHash('')).toEqual({ name: 'today' });
+  expect(parseHash('#/')).toEqual({ name: 'today' });
+  expect(parseHash('#/plantes')).toEqual({ name: 'plants' });
+  expect(parseHash('#/nimporte')).toEqual({ name: 'today' });
 });
 
-test.each(['#/plante/abc', '#/plante/abc/modifier', '#/nouvelle-plante', '#/reglages', '#/'])(
+test.each(['#/plante/abc', '#/plante/abc/modifier', '#/nouvelle-plante', '#/reglages', '#/', '#/plantes'])(
   'aller-retour %s',
   (h) => {
     expect(toHash(parseHash(h))).toBe(h);

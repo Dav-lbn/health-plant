@@ -21,7 +21,7 @@ test('parcours complet de l’étape 1', async ({ page }, info) => {
   page.on('dialog', (d) => d.accept());
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
-  await page.goto('./');
+  await page.goto('./#/plantes');
   await expect(page.getByText('Aucune plante pour l\'instant')).toBeVisible();
 
   // Pièce + plante avec grande photo
@@ -78,7 +78,7 @@ test('parcours complet de l’étape 1', async ({ page }, info) => {
   await expect(page.getByRole('alert')).toHaveText('Fichier de sauvegarde invalide');
 
   // Supprimer puis réimporter
-  await page.goto('./');
+  await page.goto('./#/plantes');
   await page.locator('.card', { hasText: 'Monstera' }).click();
   await page.getByRole('button', { name: 'Options' }).click();
   await page.getByRole('button', { name: '🗑️ Supprimer' }).click();
@@ -87,7 +87,7 @@ test('parcours complet de l’étape 1', async ({ page }, info) => {
   await page.goto('./#/reglages');
   await page.getByTestId('import-input').setInputFiles({ name: 'sauvegarde.json', mimeType: 'application/json', buffer: await readFile(backupPath) });
   await expect(page.getByText('Données importées')).toBeVisible();
-  await page.goto('./');
+  await page.goto('./#/plantes');
   await page.locator('.card', { hasText: 'Monstera' }).click();
   await expect(page.locator('.tl').getByText('300 mL')).toBeVisible();
   await page.screenshot({ path: info.outputPath('fiche.png') });

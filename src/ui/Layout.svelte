@@ -2,9 +2,10 @@
   import type { Snippet } from 'svelte';
   import { app } from '../lib/stores.svelte';
 
-  let { list, detail, wide }: { list: Snippet; detail: Snippet | null; wide: boolean } = $props();
+  let { list, detail, wide, dueCount = 0 }: { list: Snippet; detail: Snippet | null; wide: boolean; dueCount?: number } = $props();
   const r = $derived(app.route.name);
-  const onList = $derived(r !== 'settings');
+  const onToday = $derived(r === 'today');
+  const onList = $derived(r !== 'settings' && r !== 'today');
 </script>
 
 {#if wide}
@@ -13,8 +14,9 @@
       {@render list()}
       <nav class="side-nav">
         <a class="btn btn-primary add" href="#/nouvelle-plante" aria-label="Ajouter une plante">＋</a>
-        <a class="btn" class:active={r !== 'settings'} href="#/">🌿 Plantes</a>
-        <a class="btn" class:active={r === 'settings'} href="#/reglages">⚙️ Réglages</a>
+        <a class="btn" class:active={onToday} href="#/" aria-label="Aujourd'hui">☀️{#if dueCount}<b class="pill">{dueCount}</b>{/if}</a>
+        <a class="btn" class:active={onList} href="#/plantes">🌿 Plantes</a>
+        <a class="btn" class:active={r === 'settings'} href="#/reglages" aria-label="Réglages">⚙️</a>
       </nav>
     </aside>
     <main class="pane-detail">
@@ -33,7 +35,8 @@
     {#if detail}{@render detail()}{:else}{@render list()}{/if}
   </main>
   <nav class="tabbar glass">
-    <a class:active={onList} href="#/"><span>🌿</span>Plantes</a>
+    <a class:active={onToday} href="#/"><span>☀️{#if dueCount}<b class="pill">{dueCount}</b>{/if}</span>Aujourd'hui</a>
+    <a class:active={onList} href="#/plantes"><span>🌿</span>Plantes</a>
     <a class:active={r === 'settings'} href="#/reglages"><span>⚙️</span>Réglages</a>
   </nav>
 {/if}
@@ -72,6 +75,30 @@
   }
   .tabbar a span {
     font-size: 1.25rem;
+    position: relative;
+  }
+  .pill {
+    position: absolute;
+    top: -6px;
+    right: -14px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 9px;
+    background: var(--bad);
+    color: #fff;
+    font-size: 0.7rem;
+    font-weight: 800;
+    line-height: 18px;
+    text-align: center;
+    box-shadow: 0 0 10px rgba(255, 107, 94, 0.6);
+  }
+  .side-nav .btn {
+    position: relative;
+  }
+  .side-nav .pill {
+    top: -4px;
+    right: -4px;
   }
   .tabbar a.active {
     color: var(--text);
@@ -107,6 +134,7 @@
   .side-nav .btn {
     flex: 1;
     font-size: 0.9rem;
+    padding: 0 10px;
   }
   .side-nav .add {
     flex: none;

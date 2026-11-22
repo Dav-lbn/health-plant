@@ -103,7 +103,7 @@
 
 <form class="form" onsubmit={submit}>
   <header class="top">
-    <a class="btn btn-icon btn-ghost" href={existing ? `#/plante/${existing.id}` : '#/'} aria-label="Retour">‹</a>
+    <a class="btn btn-icon btn-ghost" href={existing ? `#/plante/${existing.id}` : '#/plantes'} aria-label="Retour">‹</a>
     <h1>{existing ? 'Modifier' : 'Nouvelle plante'}</h1>
   </header>
 

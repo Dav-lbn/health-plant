@@ -1,4 +1,5 @@
 export type Route =
+  | { name: 'today' }
   | { name: 'plants' }
   | { name: 'plant'; id: string }
   | { name: 'plant-new' }
@@ -17,7 +18,8 @@ export function parseHash(hash: string): Route {
   }
   if (parts.length === 1 && parts[0] === 'nouvelle-plante') return { name: 'plant-new' };
   if (parts.length === 1 && parts[0] === 'reglages') return { name: 'settings' };
-  return { name: 'plants' };
+  if (parts.length === 1 && parts[0] === 'plantes') return { name: 'plants' };
+  return { name: 'today' };
 }
 
 export function toHash(r: Route): string {
@@ -34,6 +36,8 @@ export function toHash(r: Route): string {
       return '#/nouvelle-plante';
     case 'settings':
       return '#/reglages';
+    case 'plants':
+      return '#/plantes';
     default:
       return '#/';
   }

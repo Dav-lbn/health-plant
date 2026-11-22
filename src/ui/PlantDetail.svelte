@@ -79,7 +79,7 @@
 {#if !plant}
   {#if app.loaded}
     <EmptyState icon="🍂" title="Plante introuvable" text="Elle a peut-être été supprimée.">
-      <a class="btn" href="#/">Retour à mes plantes</a>
+      <a class="btn" href="#/plantes">Retour à mes plantes</a>
     </EmptyState>
   {/if}
 {:else}
@@ -92,7 +92,7 @@
       {/if}
       <div class="shine"></div>
       <div class="bar">
-        <a class="btn btn-icon round back" href="#/" aria-label="Retour">‹</a>
+        <a class="btn btn-icon round back" href="#/plantes" aria-label="Retour">‹</a>
         <button class="btn btn-icon round" aria-label="Options" onclick={() => (menu = !menu)}>⋯</button>
       </div>
       {#if menu}
