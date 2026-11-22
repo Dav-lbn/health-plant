@@ -15,8 +15,11 @@ nul, ou aussi proche de zéro que possible, y compris pour les analyses.
 
 ## Objectifs
 
-- Fonctionner confortablement sur smartphone (iPhone et Android), en
-  s'installant sur l'écran d'accueil.
+- Fonctionner confortablement sur le téléphone de l'utilisateur, un Samsung
+  Galaxy Z Fold 5 (Android, Chrome / Samsung Internet), en s'installant sur
+  l'écran d'accueil. L'interface s'adapte aux deux écrans : écran externe
+  étroit (une colonne) et écran déplié quasi carré (liste des plantes et fiche
+  côte à côte).
 - Gérer une liste de plantes, chacune avec :
   - nom (et espèce, facultatif), photo principale ;
   - exposition à la lumière (plein soleil / lumière vive indirecte /
@@ -26,6 +29,9 @@ nul, ou aussi proche de zéro que possible, y compris pour les analyses.
   - notes libres.
 - Enregistrer un arrosage en un geste (date du jour + quantité habituelle
   pré-remplie, modifiable). L'historique des arrosages est conservé.
+- Choix de l'IA qui analyse : Google Gemini ou Mistral. Une IA par défaut
+  dans les réglages, modifiable au moment de chaque diagnostic. Chaque
+  diagnostic enregistre l'IA et le modèle utilisés.
 - Diagnostic sur photo : prendre ou choisir une photo, l'envoyer à l'IA avec
   le contexte de la plante (espèce, exposition, arrosage), et afficher :
   état général, problèmes détectés, causes probables, actions recommandées.
@@ -53,10 +59,11 @@ nul, ou aussi proche de zéro que possible, y compris pour les analyses.
 
 ## Contraintes
 
-- Coût nul : hébergement statique gratuit, offre gratuite de l'API d'IA.
+- Coût nul : hébergement statique gratuit, offres gratuites des API d'IA
+  (Gemini : offre gratuite ; Mistral : offre « Experiment »).
 - Pas de serveur : tout tourne dans le navigateur du téléphone.
-- La clé d'API appartient à l'utilisateur, il la saisit une fois dans les
-  réglages ; elle est stockée uniquement sur le téléphone, jamais dans le code
+- Les clés d'API (une par IA) appartiennent à l'utilisateur, il les saisit
+  une fois dans les réglages ; elle est stockée uniquement sur le téléphone, jamais dans le code
   ni dans le dépôt.
 
 ## Approches envisagées
@@ -71,7 +78,9 @@ nul, ou aussi proche de zéro que possible, y compris pour les analyses.
 3. Questionnaire de symptômes sans IA : gratuit et fiable, mais n'analyse pas
    la photo. Écartée (proposée comme secours, non retenue).
 
-Choix de l'utilisateur : option 1.
+Choix de l'utilisateur : option 1, complétée par Mistral comme seconde IA au
+choix. Mistral « Experiment » est gratuit mais demande une vérification par
+téléphone, et les requêtes peuvent servir à entraîner ses modèles.
 
 ## Décisions de réalisation (choix de Claude, à valider)
 
@@ -87,18 +96,25 @@ Choix de l'utilisateur : option 1.
 - **Persistance** : demander `navigator.storage.persist()` ; afficher un
   rappel discret d'export si aucune sauvegarde depuis 30 jours (Safari peut
   effacer les données d'un site non installé et non visité).
-- **IA** : appel direct depuis le navigateur à l'API Gemini, modèle « Flash »
-  de l'offre gratuite. Le nom du modèle est un réglage modifiable (les modèles
-  changent régulièrement). Réponse demandée au format JSON structuré :
+- **IA** : appel direct depuis le navigateur. Une interface commune
+  « fournisseur d'analyse » avec deux implémentations : Gemini (modèle
+  « Flash » de l'offre gratuite) et Mistral (modèle avec vision, p. ex.
+  Mistral Small). Même prompt et même format de réponse pour les deux. Le nom
+  du modèle de chaque IA est un réglage modifiable (les modèles changent
+  régulièrement). À vérifier dès le début de la réalisation : que l'API
+  Mistral accepte les appels directs depuis un navigateur (CORS) et que les
+  modèles avec vision sont inclus dans l'offre gratuite. Si l'appel direct
+  est bloqué, solution de repli : un petit relais gratuit (Cloudflare Worker)
+  qui transmet la requête sans stocker la clé. Réponse demandée au format JSON structuré :
   `etat` (bon / à surveiller / malade), `resume`, `problemes[]`
   (nom, cause probable, gravité), `actions[]` (action, priorité, délai),
   `espece_suggeree`. Gestion des erreurs : pas de réseau, clé invalide,
   quota dépassé — message clair, la photo reste enregistrée pour réessayer.
-- **Écrans** : liste des plantes (avec état du dernier diagnostic et jours
+- **Écrans** (deux colonnes quand le Fold est déplié) : liste des plantes (avec état du dernier diagnostic et jours
   depuis le dernier arrosage) → fiche plante (infos, bouton « Arrosé »,
   bouton « Diagnostiquer », chronologie) → résultat de diagnostic (avec
-  « Marquer comme fait » sur chaque action) → réglages (clé API, modèle,
-  export / import).
+  « Marquer comme fait » sur chaque action) → réglages (IA par défaut, clé et modèle
+  pour chaque IA, export / import).
 
 ## Laissé au réalisateur
 
