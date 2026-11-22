@@ -1,17 +1,18 @@
 import { db } from './db';
-import type { CareEvent, Photo, Plant, Room } from './types';
+import type { CareEvent, Diagnosis, Photo, Plant, Room } from './types';
 import { CARE_TYPES, EXPOSURES } from './types';
 
 type SerializedPhoto = Omit<Photo, 'blob' | 'thumb'> & { blob: string; thumb: string };
 
 export interface BackupFile {
   app: 'health-plant';
-  version: 1;
+  version: 1 | 2;
   exportedAt: string;
   rooms: Room[];
   plants: Plant[];
   careEvents: CareEvent[];
   photos: SerializedPhoto[];
+  diagnoses?: Diagnosis[];
 }
 
 const INVALID = 'Fichier de sauvegarde invalide';
@@ -36,11 +37,12 @@ function dataUrlToBlob(url: string): Blob {
 }
 
 export async function exportAll(): Promise<BackupFile> {
-  const [rooms, plants, careEvents, photos] = await Promise.all([
+  const [rooms, plants, careEvents, photos, diagnoses] = await Promise.all([
     db.rooms.toArray(),
     db.plants.toArray(),
     db.careEvents.toArray(),
     db.photos.toArray(),
+    db.diagnoses.toArray(),
   ]);
   const serialized: SerializedPhoto[] = [];
   for (const p of photos) {
@@ -48,7 +50,7 @@ export async function exportAll(): Promise<BackupFile> {
   }
   const exportedAt = new Date().toISOString();
   await db.meta.put({ key: LAST_EXPORT_KEY, value: exportedAt });
-  return { app: 'health-plant', version: 1, exportedAt, rooms, plants, careEvents, photos: serialized };
+  return { app: 'health-plant', version: 2, exportedAt, rooms, plants, careEvents, photos: serialized, diagnoses };
 }
 
 export async function exportBlob(): Promise<{ blob: Blob; filename: string }> {
@@ -67,7 +69,7 @@ const isNumOrNull = (x: unknown) => x === null || (typeof x === 'number' && Numb
 const isDay = (x: unknown) => isStr(x) && /^\d{4}-\d{2}-\d{2}$/.test(x);
 
 export function validateBackup(x: unknown): x is BackupFile {
-  if (!isObj(x) || x.app !== 'health-plant' || x.version !== 1) return false;
+  if (!isObj(x) || x.app !== 'health-plant' || (x.version !== 1 && x.version !== 2)) return false;
   const { rooms, plants, careEvents, photos } = x;
   if (![rooms, plants, careEvents, photos].every(Array.isArray)) return false;
 
@@ -95,6 +97,16 @@ export function validateBackup(x: unknown): x is BackupFile {
     if (!isStr(ph.blob) || !isStr(ph.thumb) || !isStr(ph.takenAt)) return false;
     if (!ph.blob.startsWith('data:') || !ph.thumb.startsWith('data:')) return false;
   }
+  if (x.diagnoses !== undefined) {
+    if (!Array.isArray(x.diagnoses)) return false;
+    for (const d of x.diagnoses as unknown[]) {
+      if (!isObj(d) || !isStr(d.id) || !isStr(d.plantId) || !plantIds.has(d.plantId)) return false;
+      if (!Array.isArray(d.photoIds) || !isStr(d.status) || !isStr(d.createdAt)) return false;
+    }
+  }
+  for (const p of plants as Record<string, unknown>[]) {
+    if (p.speciesSheet !== undefined && p.speciesSheet !== null && !isObj(p.speciesSheet)) return false;
+  }
   return true;
 }
 
@@ -102,10 +114,12 @@ export function validateBackup(x: unknown): x is BackupFile {
 export async function importAll(x: unknown): Promise<void> {
   if (!validateBackup(x)) throw new Error(INVALID);
   const photos: Photo[] = x.photos.map((p) => ({ ...p, blob: dataUrlToBlob(p.blob), thumb: dataUrlToBlob(p.thumb) }));
-  await db.transaction('rw', [db.rooms, db.plants, db.careEvents, db.photos], async () => {
-    await Promise.all([db.rooms.clear(), db.plants.clear(), db.careEvents.clear(), db.photos.clear()]);
+  const plants: Plant[] = x.plants.map((p) => ({ ...p, speciesSheet: p.speciesSheet ?? null }));
+  await db.transaction('rw', [db.rooms, db.plants, db.careEvents, db.photos, db.diagnoses], async () => {
+    await Promise.all([db.rooms.clear(), db.plants.clear(), db.careEvents.clear(), db.photos.clear(), db.diagnoses.clear()]);
     await db.rooms.bulkAdd(x.rooms);
-    await db.plants.bulkAdd(x.plants);
+    await db.plants.bulkAdd(plants);
+    await db.diagnoses.bulkAdd(x.diagnoses ?? []);
     await db.careEvents.bulkAdd(x.careEvents);
     await db.photos.bulkAdd(photos);
   });

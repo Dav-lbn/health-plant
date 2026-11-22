@@ -16,3 +16,9 @@ test.each(['#/plante/abc', '#/plante/abc/modifier', '#/nouvelle-plante', '#/regl
     expect(toHash(parseHash(h))).toBe(h);
   },
 );
+
+test('routes de diagnostic', () => {
+  expect(parseHash('#/plante/abc/diagnostic')).toEqual({ name: 'diagnose', id: 'abc' });
+  expect(parseHash('#/plante/abc/diagnostic/d1')).toEqual({ name: 'diagnosis', id: 'abc', diagId: 'd1' });
+  for (const h of ['#/plante/abc/diagnostic', '#/plante/abc/diagnostic/d1']) expect(toHash(parseHash(h))).toBe(h);
+});

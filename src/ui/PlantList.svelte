@@ -59,7 +59,7 @@
     <h2 class="room">{s.name} <span class="muted">· {s.plants.length}</span></h2>
     <div class="cards">
       {#each s.plants as p (p.id)}
-        <PlantCard plant={p} photo={p.photoId ? app.thumbs[p.photoId] : undefined} lastWater={lastWater[p.id]} selected={p.id === selectedId} />
+        <PlantCard plant={p} photo={p.photoId ? app.thumbs[p.photoId] : undefined} lastWater={lastWater[p.id]} selected={p.id === selectedId} health={app.lastDiag[p.id]?.result?.state} />
       {/each}
     </div>
   {/each}

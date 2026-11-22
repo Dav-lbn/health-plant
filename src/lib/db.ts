@@ -1,5 +1,5 @@
 import Dexie, { type Table } from 'dexie';
-import type { CareEvent, Photo, Plant, Room } from './types';
+import type { CareEvent, Diagnosis, Photo, Plant, Room } from './types';
 
 export interface MetaEntry {
   key: string;
@@ -12,6 +12,7 @@ class HealthPlantDB extends Dexie {
   careEvents!: Table<CareEvent, string>;
   photos!: Table<Photo, string>;
   meta!: Table<MetaEntry, string>;
+  diagnoses!: Table<Diagnosis, string>;
 
   constructor() {
     super('health-plant');
@@ -22,6 +23,16 @@ class HealthPlantDB extends Dexie {
       photos: 'id, plantId',
       meta: 'key',
     });
+    this.version(2)
+      .stores({ diagnoses: 'id, plantId, [plantId+createdAt]' })
+      .upgrade((tx) =>
+        tx
+          .table('plants')
+          .toCollection()
+          .modify((p) => {
+            if (p.speciesSheet === undefined) p.speciesSheet = null;
+          }),
+      );
   }
 }
 

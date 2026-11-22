@@ -1,14 +1,14 @@
 import { db } from './db';
-import type { CareEvent, CareType, Plant, Room } from './types';
+import type { CareEvent, CareType, Diagnosis, Plant, Room } from './types';
 
 const now = () => new Date().toISOString();
 const uid = () => crypto.randomUUID();
 
-export type NewPlant = Omit<Plant, 'id' | 'createdAt' | 'updatedAt'>;
+export type NewPlant = Omit<Plant, 'id' | 'createdAt' | 'updatedAt' | 'speciesSheet'> & { speciesSheet?: Plant['speciesSheet'] };
 
 export async function createPlant(input: NewPlant): Promise<Plant> {
   const t = now();
-  const plant: Plant = { ...input, id: uid(), createdAt: t, updatedAt: t };
+  const plant: Plant = { speciesSheet: null, ...input, id: uid(), createdAt: t, updatedAt: t };
   await db.plants.add(plant);
   return plant;
 }
@@ -19,7 +19,8 @@ export async function updatePlant(id: string, patch: Partial<Plant>): Promise<vo
 }
 
 export async function deletePlant(id: string): Promise<void> {
-  await db.transaction('rw', db.plants, db.careEvents, db.photos, async () => {
+  await db.transaction('rw', [db.plants, db.careEvents, db.photos, db.diagnoses], async () => {
+    await db.diagnoses.where('plantId').equals(id).delete();
     await db.careEvents.where('plantId').equals(id).delete();
     await db.photos.where('plantId').equals(id).delete();
     await db.plants.delete(id);
@@ -83,4 +84,41 @@ export async function listAllCare(): Promise<CareEvent[]> {
 export async function lastCare(plantId: string, type: CareType): Promise<CareEvent | undefined> {
   const events = await db.careEvents.where('[plantId+type]').equals([plantId, type]).toArray();
   return events.sort(byDateDesc)[0];
+}
+
+const byCreatedDesc = (a: Diagnosis, b: Diagnosis) => b.createdAt.localeCompare(a.createdAt);
+
+export async function listDiagnoses(plantId: string): Promise<Diagnosis[]> {
+  const list = await db.diagnoses.where('plantId').equals(plantId).toArray();
+  return list.sort(byCreatedDesc);
+}
+
+export async function listAllDiagnoses(): Promise<Diagnosis[]> {
+  return (await db.diagnoses.toArray()).sort(byCreatedDesc);
+}
+
+export async function lastDiagnosis(plantId: string): Promise<Diagnosis | undefined> {
+  return (await listDiagnoses(plantId)).find((d) => d.status === 'termine');
+}
+
+export function getDiagnosis(id: string): Promise<Diagnosis | undefined> {
+  return db.diagnoses.get(id);
+}
+
+export async function saveDiagnosis(d: Diagnosis): Promise<void> {
+  await db.diagnoses.put($stateSnapshot(d));
+}
+
+export async function deleteDiagnosis(id: string): Promise<void> {
+  await db.transaction('rw', db.diagnoses, db.photos, async () => {
+    const d = await db.diagnoses.get(id);
+    if (!d) return;
+    await db.photos.bulkDelete(d.photoIds);
+    await db.diagnoses.delete(id);
+  });
+}
+
+/** Copie profonde simple (les objets réactifs Svelte ne sont pas clonables par IndexedDB). */
+function $stateSnapshot<T>(x: T): T {
+  return JSON.parse(JSON.stringify(x));
 }

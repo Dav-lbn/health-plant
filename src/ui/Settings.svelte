@@ -4,6 +4,7 @@
   import { exportBlob, importAll, lastExportDate } from '../lib/backup';
   import { daysBetween, formatDateFr, todayLocal } from '../lib/dates';
   import { vibrate } from './haptics';
+  import AiSettings from './AiSettings.svelte';
 
   let newRoom = $state('');
   let lastExport = $state<string | null>(null);
@@ -99,6 +100,8 @@
       <p>Pensez à exporter vos données : {exportDay ? `dernière sauvegarde le ${formatDateFr(exportDay)}` : 'aucune sauvegarde pour l’instant'}.</p>
     </div>
   {/if}
+
+  <AiSettings />
 
   <section class="glass block">
     <h2>Pièces</h2>

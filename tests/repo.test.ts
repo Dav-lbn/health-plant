@@ -3,6 +3,7 @@ import { db } from '../src/lib/db';
 import {
   createPlant, getPlant, deletePlant, logCare, listCare, lastCare,
   createRoom, deleteRoom, listPlants, listRooms, renameRoom, updatePlant,
+  saveDiagnosis, lastDiagnosis, listDiagnoses, deleteDiagnosis, getDiagnosis,
 } from '../src/lib/repo';
 
 const basePlant = {
@@ -75,5 +76,42 @@ describe('pièces', () => {
     expect(plants).toHaveLength(1);
     expect(plants[0].id).toBe(p.id);
     expect(plants[0].roomId).toBeNull();
+  });
+});
+
+describe('diagnostics', () => {
+  const diag = (id: string, plantId: string, status: 'termine' | 'erreur', createdAt: string, photoIds: string[] = []) => ({
+    id, plantId, createdAt, date: createdAt.slice(0, 10), provider: 'gemini' as const, model: 'm',
+    photoIds, photoKinds: photoIds.map(() => 'ensemble' as const), answers: [], status, error: null, result: null,
+  });
+
+  test('deletePlant supprime les diagnostics', async () => {
+    const p = await createPlant(basePlant);
+    await saveDiagnosis(diag('d1', p.id, 'termine', '2026-11-20T10:00:00Z'));
+    await deletePlant(p.id);
+    expect(await db.diagnoses.count()).toBe(0);
+  });
+
+  test('lastDiagnosis ignore les erreurs', async () => {
+    const p = await createPlant(basePlant);
+    await saveDiagnosis(diag('d1', p.id, 'termine', '2026-11-18T10:00:00Z'));
+    await saveDiagnosis(diag('d2', p.id, 'termine', '2026-11-20T10:00:00Z'));
+    await saveDiagnosis(diag('d3', p.id, 'erreur', '2026-11-21T10:00:00Z'));
+    expect((await lastDiagnosis(p.id))?.id).toBe('d2');
+    expect((await listDiagnoses(p.id)).map((d) => d.id)).toEqual(['d3', 'd2', 'd1']);
+  });
+
+  test('deleteDiagnosis supprime ses photos', async () => {
+    const p = await createPlant(basePlant);
+    await db.photos.add({ id: 'ph1', plantId: p.id, blob: new Blob(['x']), thumb: new Blob(['y']), takenAt: '2026-11-20T10:00:00Z' });
+    await saveDiagnosis(diag('d1', p.id, 'termine', '2026-11-20T10:00:00Z', ['ph1']));
+    await deleteDiagnosis('d1');
+    expect(await getDiagnosis('d1')).toBeUndefined();
+    expect(await db.photos.count()).toBe(0);
+  });
+
+  test('createPlant met speciesSheet à null', async () => {
+    const p = await createPlant(basePlant);
+    expect((await getPlant(p.id))?.speciesSheet).toBeNull();
   });
 });

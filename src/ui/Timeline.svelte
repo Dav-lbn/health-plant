@@ -3,15 +3,17 @@
   import { CARE_ICONS, CARE_LABELS } from '../lib/types';
   import { formatDateFr } from '../lib/dates';
   import { photoUrl } from '../lib/photos';
+  import { PROVIDER_LABELS } from '../lib/types';
+  import HealthBadge from './HealthBadge.svelte';
 
   let { items, ondeletecare }: { items: TimelineItem[]; ondeletecare: (id: string) => void } = $props();
 </script>
 
 {#if items.length}
   <ol class="tl">
-    {#each items as it (it.kind === 'care' ? it.event.id : it.photo.id)}
+    {#each items as it (it.kind === 'care' ? it.event.id : it.kind === 'photo' ? it.photo.id : it.diagnosis.id)}
       <li>
-        <span class="dot" class:photo={it.kind === 'photo'}></span>
+        <span class="dot" class:photo={it.kind === 'photo'} class:diag={it.kind === 'diagnosis'}></span>
         <div class="body glass">
           <div class="head">
             <time>{formatDateFr(it.date)}</time>
@@ -25,6 +27,21 @@
               {#if it.event.amountMl != null}<span class="muted"> · {it.event.amountMl} mL</span>{/if}
             </p>
             {#if it.event.notes}<p class="muted note">{it.event.notes}</p>{/if}
+          {:else if it.kind === 'diagnosis'}
+            {@const d = it.diagnosis}
+            <a class="diag" href={`#/plante/${d.plantId}/diagnostic/${d.id}`}>
+              <span class="what">🔬 Diagnostic · {PROVIDER_LABELS[d.provider]}</span>
+              {#if d.status === 'termine' && d.result}
+                <HealthBadge state={d.result.state} />
+                <span class="muted note clamp">{d.result.summary}</span>
+              {:else if d.status === 'questions'}
+                <span class="muted note">Questions en attente — touchez pour répondre</span>
+              {:else if d.status === 'erreur'}
+                <span class="muted note">Échec — touchez pour réessayer</span>
+              {:else}
+                <span class="muted note">En cours…</span>
+              {/if}
+            </a>
           {:else}
             <p class="what">📷 Photo</p>
             <img src={photoUrl(`${it.photo.id}:thumb`, it.photo.thumb)} alt="" loading="lazy" />
@@ -68,6 +85,27 @@
     border-radius: 50%;
     background: var(--accent);
     box-shadow: 0 0 12px var(--accent-glow);
+  }
+  .dot.diag {
+    background: #c9a4ff;
+    box-shadow: 0 0 12px rgba(201, 164, 255, 0.55);
+  }
+  .diag {
+    display: grid;
+    gap: 6px;
+    justify-items: start;
+    color: inherit;
+    text-decoration: none;
+    margin-top: 2px;
+    position: relative;
+    z-index: 1;
+  }
+  .clamp {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
   }
   .dot.photo {
     background: #8fd3ff;

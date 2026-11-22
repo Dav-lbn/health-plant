@@ -10,12 +10,16 @@
   import CareQuickActions from './CareQuickActions.svelte';
   import Timeline from './Timeline.svelte';
   import EmptyState from './EmptyState.svelte';
+  import HealthBadge from './HealthBadge.svelte';
+  import SpeciesCard from './SpeciesCard.svelte';
   import { vibrate } from './haptics';
 
   let { id }: { id: string } = $props();
 
   const plant = $derived(app.plants.find((p) => p.id === id));
   const events = $derived(app.care.filter((e) => e.plantId === id));
+  const diagnoses = $derived(app.diagnoses.filter((d) => d.plantId === id));
+  const last = $derived(app.lastDiag[id]);
   const room = $derived(plant?.roomId ? app.rooms.find((r) => r.id === plant.roomId) : undefined);
 
   let photos = $state<Photo[]>([]);
@@ -32,7 +36,7 @@
     else main = undefined;
   });
 
-  const timeline = $derived(buildTimeline(events, photos.filter((p) => p.id !== plant?.photoId)));
+  const timeline = $derived(buildTimeline(events, photos.filter((p) => p.id !== plant?.photoId), diagnoses));
 
   async function addPhoto(e: Event) {
     const input = e.target as HTMLInputElement;
@@ -98,6 +102,7 @@
         </div>
       {/if}
       <div class="title">
+        {#if last?.result}<a class="state" href={`#/plante/${plant.id}/diagnostic/${last.id}`}><HealthBadge state={last.result.state} /></a>{/if}
         <h1>{plant.name}</h1>
         {#if plant.species}<p class="species">{plant.species}</p>{/if}
       </div>
@@ -110,10 +115,14 @@
       {#each freqs as t}<span class="chip">{CARE_ICONS[t]} tous les {plant.careFrequencyDays[t]} j</span>{/each}
     </div>
 
+    <a class="btn btn-primary diagnose" href={`#/plante/${plant.id}/diagnostic`}>🔬 Diagnostiquer</a>
+
     <section>
       <h2>Soins</h2>
       <CareQuickActions {plant} {events} />
     </section>
+
+    <SpeciesCard {plant} />
 
     {#if plant.notes}
       <section class="glass notes">
@@ -208,6 +217,15 @@
     right: 20px;
     bottom: 16px;
     z-index: 1;
+  }
+  .state {
+    display: inline-block;
+    margin-bottom: 6px;
+    text-decoration: none;
+  }
+  .diagnose {
+    min-height: 56px;
+    font-size: 1.1rem;
   }
   .title h1 {
     margin: 0;
