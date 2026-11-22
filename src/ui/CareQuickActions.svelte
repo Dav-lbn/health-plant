@@ -58,6 +58,7 @@
       onpointerdown={() => down(t)}
       onpointerup={() => up(t)}
       onpointerleave={() => clearTimeout(pressTimer)}
+      onpointercancel={() => { clearTimeout(pressTimer); longPressed = true; }}
       onclick={(e) => { if (e.detail === 0) quick(t); }}
       oncontextmenu={(e) => e.preventDefault()}
       aria-label={t === 'arrosage' ? 'Arrosé' : CARE_LABELS[t]}
