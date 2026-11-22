@@ -5,119 +5,191 @@ Statut : en attente d'approbation
 
 ## Intention
 
-Une application personnelle, sur smartphone, pour prendre soin de ses plantes.
-L'utilisateur photographie une plante, l'application en fait un diagnostic et
-propose les actions à mener. Elle garde en mémoire chaque plante, ses
-informations d'entretien, chaque diagnostic et chaque traitement.
+Une application personnelle et premium, sur smartphone, pour prendre soin de
+ses plantes. L'utilisateur photographie une plante, l'application en fait un
+diagnostic, propose les actions à mener, les transforme en tâches et suit
+l'évolution de la plante dans le temps. Elle garde en mémoire chaque plante,
+ses informations d'entretien, chaque diagnostic et chaque soin.
 
 Usage : une seule personne, pour ses propres plantes. Contrainte forte : coût
 nul, ou aussi proche de zéro que possible, y compris pour les analyses.
+Attente : une application qui fait « vraiment pro et premium », au design
+sombre et glossy.
 
-## Objectifs
+## Appareil cible
 
-- Fonctionner confortablement sur le téléphone de l'utilisateur, un Samsung
-  Galaxy Z Fold 5 (Android, Chrome / Samsung Internet), en s'installant sur
-  l'écran d'accueil. L'interface s'adapte aux deux écrans : écran externe
-  étroit (une colonne) et écran déplié quasi carré (liste des plantes et fiche
-  côte à côte).
-- Gérer une liste de plantes, chacune avec :
-  - nom (et espèce, facultatif), photo principale ;
-  - exposition à la lumière (plein soleil / lumière vive indirecte /
-    mi-ombre / ombre) ;
-  - quantité d'eau habituelle (texte libre ou mL) ;
-  - date et quantité du dernier arrosage ;
-  - notes libres.
-- Enregistrer un arrosage en un geste (date du jour + quantité habituelle
-  pré-remplie, modifiable). L'historique des arrosages est conservé.
-- Choix de l'IA qui analyse : Google Gemini ou Mistral. Une IA par défaut
-  dans les réglages, modifiable au moment de chaque diagnostic. Chaque
+Samsung Galaxy Z Fold 5 (Android, Chrome / Samsung Internet). L'interface
+s'adapte aux deux écrans : écran externe étroit (une colonne) et écran déplié
+quasi carré (deux colonnes : liste et détail). Elle doit rester utilisable sur
+tout autre smartphone récent.
+
+## Objectifs (fonctionnalités)
+
+### Plantes
+- Liste des plantes, regroupées par **pièce** (salon, chambre, balcon…,
+  pièces créées par l'utilisateur), avec recherche.
+- Fiche plante : nom, espèce, photo principale, pièce, exposition à la
+  lumière (plein soleil / lumière vive indirecte / mi-ombre / ombre), quantité
+  d'eau habituelle (mL), notes.
+- **Fiche d'espèce générée par l'IA** : lumière, eau, humidité, température,
+  toxicité pour les animaux, conseils. L'IA propose l'espèce à partir de la
+  photo ; l'utilisateur confirme ou corrige. La fiche est stockée et
+  régénérable.
+
+### Soins
+- Types de soins : **arrosage, engrais, rempotage, taille, traitement**,
+  chacun avec son icône et une fréquence propre à la plante.
+- Enregistrer un soin en un geste (date du jour, quantité pré-remplie pour
+  l'arrosage, modifiable). Historique complet conservé.
+- **Arrosage prévu automatiquement** : prochaine date calculée à partir de la
+  fréquence de base (fiche d'espèce), de l'intervalle réel observé dans
+  l'historique et de la saison (intervalle allongé en automne / hiver).
+  Badge « à arroser » / « en retard ». Même logique simple (fréquence +
+  dernier soin) pour engrais, rempotage, taille.
+
+### Diagnostic
+- Choix de l'IA : **Google Gemini ou Mistral**. Une IA par défaut dans les
+  réglages, modifiable à chaque diagnostic (pour un deuxième avis). Chaque
   diagnostic enregistre l'IA et le modèle utilisés.
-- Diagnostic sur photo : prendre ou choisir une photo, l'envoyer à l'IA avec
-  le contexte de la plante (espèce, exposition, arrosage), et afficher :
-  état général, problèmes détectés, causes probables, actions recommandées.
-- Conserver chaque diagnostic (photo + résultat) dans l'historique de la plante.
-- Enregistrer des traitements (date, action réalisée, notes), éventuellement
-  créés en un geste à partir d'une action recommandée.
-- Voir pour chaque plante une chronologie : diagnostics, traitements, arrosages.
-- Exporter / importer toutes les données (fichier JSON incluant les photos)
-  pour sauvegarde.
+- **Prise de vue guidée en plusieurs photos** : vue d'ensemble (obligatoire),
+  gros plan de la zone abîmée, dessous des feuilles, terre (facultatives).
+  Conseils de prise de vue à l'écran.
+- Contexte envoyé à l'IA : espèce, exposition, historique récent des soins,
+  saison, et dernier diagnostic.
+- Résultat structuré : état (bon / à surveiller / malade), résumé, problèmes
+  (nom, cause probable, gravité), actions (action, type de soin, priorité,
+  délai), **niveau de confiance**.
+- **Questions de précision** : si la confiance est faible, l'IA pose une à
+  trois questions (« la terre est-elle humide ? ») ; l'utilisateur répond et
+  le diagnostic est affiné.
+- **Suivi de l'évolution** : si un diagnostic précédent existe, l'IA reçoit
+  la photo précédente et indique la tendance (mieux / stable / moins bien).
+  Comparaison visuelle avant/après avec un curseur.
+
+### Écran « Aujourd'hui »
+- Écran d'accueil : les tâches du jour et en retard, toutes plantes
+  confondues. Sources : actions recommandées par les diagnostics (devenues
+  des tâches datées) et soins prévus (arrosage, engrais…).
+- Cocher une tâche enregistre le soin correspondant dans l'historique.
+  Reporter une tâche est possible.
+
+### Chronologie
+- Pour chaque plante : diagnostics, soins et tâches réalisées, dans l'ordre
+  du temps, avec les photos.
+
+### Notifications
+- Rappels sur le téléphone pour les tâches du jour, via **ntfy** (service
+  gratuit, application Android ntfy installée par l'utilisateur, abonnée à un
+  sujet secret généré aléatoirement par l'application).
+- À chaque ouverture, l'application programme les rappels des 3 prochains
+  jours (limite de l'envoi différé de ntfy.sh). Limite assumée : sans
+  ouverture de l'application pendant plus de 3 jours, plus de rappels.
+- Les messages contiennent seulement le nom de la plante et la tâche.
+  Activable / désactivable, heure de rappel réglable.
+
+### Sauvegarde
+- **Sauvegarde automatique sur Google Drive** de l'utilisateur (dossier
+  réservé à l'application, invisible dans son Drive). Sauvegarde déclenchée
+  après des modifications et à l'ouverture si la dernière date de plus d'un
+  jour. Si la connexion Google a expiré, une reconnexion en un geste est
+  proposée.
+- Restauration depuis Drive (changement de téléphone).
+- Export / import manuel d'un fichier en complément.
+
+### Design premium
+- Thème **sombre et glossy** : fonds sombres profonds avec dégradés vert
+  forêt, cartes en verre dépoli (transparence + flou + reflet léger),
+  touches de couleur lumineuses (vert vif pour « bonne santé », ambre pour
+  « à surveiller », rouge corail pour « malade »), coins arrondis, ombres
+  douces et halos.
+- Animations fluides et sobres (transitions entre écrans, apparition des
+  résultats), retours par vibration lors des validations.
+- Écrans vides soignés et explicatifs, états de chargement élégants pendant
+  l'analyse.
+- Mise en page dédiée à l'écran déplié du Fold (deux colonnes).
+- Interface en français.
 
 ## Non-objectifs
 
-- Comptes utilisateurs, synchronisation entre appareils, partage.
+- Comptes utilisateurs, partage, usage à plusieurs.
 - Publication sur l'App Store / Play Store.
-- Rappels / notifications d'arrosage (peu fiables pour une appli web sur
-  iPhone ; pourra être ajouté plus tard).
-- Mode de diagnostic hors ligne ou questionnaire de secours (option écartée
-  par l'utilisateur ; possible plus tard).
+- Mode clair.
+- Diagnostic hors ligne ou questionnaire de secours sans IA.
 
 ## Anti-objectifs
 
 - Tout coût récurrent : pas de serveur payant, pas d'API payante.
-- Perdre les données de l'utilisateur sans qu'il ait pu les sauvegarder.
+- Perdre les données de l'utilisateur.
 - Une interface pensée pour ordinateur et pénible au doigt.
+- Un design « glossy » au détriment de la lisibilité (contrastes suffisants).
 
 ## Contraintes
 
-- Coût nul : hébergement statique gratuit, offres gratuites des API d'IA
-  (Gemini : offre gratuite ; Mistral : offre « Experiment »).
-- Pas de serveur : tout tourne dans le navigateur du téléphone.
-- Les clés d'API (une par IA) appartiennent à l'utilisateur, il les saisit
-  une fois dans les réglages ; elle est stockée uniquement sur le téléphone, jamais dans le code
+- Coût nul : hébergement statique gratuit, offres gratuites (Gemini ; Mistral
+  « Experiment » ; ntfy.sh ; Google Drive).
+- Pas de serveur à maintenir : tout tourne dans le navigateur du téléphone.
+- Les clés d'API (une par IA) appartiennent à l'utilisateur, il les saisit une
+  fois dans les réglages ; elles restent sur le téléphone, jamais dans le code
   ni dans le dépôt.
+- Configuration unique côté utilisateur, guidée dans l'application :
+  - clé Gemini (Google AI Studio) ;
+  - clé Mistral (vérification par téléphone) ;
+  - identifiant OAuth Google pour Drive (projet Google Cloud gratuit,
+    origine autorisée = adresse GitHub Pages) ;
+  - application ntfy installée sur le téléphone.
+- Confidentialité : sur les offres gratuites, Google et Mistral peuvent
+  utiliser les photos envoyées pour améliorer leurs modèles. Accepté.
 
-## Approches envisagées
+## Approches envisagées (analyse des photos)
 
-1. **IA Google Gemini, offre gratuite (retenue).** Meilleure qualité de
-   diagnostic ; gratuite pour un usage personnel. Nécessite internet ; Google
-   peut faire évoluer l'offre gratuite ; sur l'offre gratuite, Google peut
-   utiliser les données envoyées pour améliorer ses produits.
+1. **IA en ligne via offres gratuites (retenue)** — Gemini, complété par
+   Mistral au choix. Meilleure qualité de diagnostic ; nécessite internet ;
+   les offres gratuites peuvent évoluer.
 2. Modèle embarqué sur le téléphone : gratuit et hors ligne, mais entraîné
-   surtout sur des plantes potagères, donc peu fiable pour des plantes
-   d'intérieur. Écartée.
-3. Questionnaire de symptômes sans IA : gratuit et fiable, mais n'analyse pas
-   la photo. Écartée (proposée comme secours, non retenue).
+   surtout sur des plantes potagères. Écartée.
+3. Questionnaire de symptômes sans IA : fiable, mais n'analyse pas la photo.
+   Écartée.
 
-Choix de l'utilisateur : option 1, complétée par Mistral comme seconde IA au
-choix. Mistral « Experiment » est gratuit mais demande une vérification par
-téléphone, et les requêtes peuvent servir à entraîner ses modèles.
+## Décisions de réalisation (choix de Claude)
 
-## Décisions de réalisation (choix de Claude, à valider)
-
-- **Forme** : application web progressive (PWA) installable, fonctionnant
-  hors ligne pour la consultation et la saisie (seul le diagnostic requiert
-  le réseau).
-- **Hébergement** : GitHub Pages, depuis ce dépôt.
-- **Technique** : TypeScript + Vite, framework léger (Preact ou Svelte),
-  interface en français.
-- **Stockage** : IndexedDB sur le téléphone (via une petite surcouche type
-  Dexie). Photos redimensionnées (~1280 px, JPEG) avant stockage et envoi,
-  pour limiter la place et le quota.
-- **Persistance** : demander `navigator.storage.persist()` ; afficher un
-  rappel discret d'export si aucune sauvegarde depuis 30 jours (Safari peut
-  effacer les données d'un site non installé et non visité).
-- **IA** : appel direct depuis le navigateur. Une interface commune
-  « fournisseur d'analyse » avec deux implémentations : Gemini (modèle
-  « Flash » de l'offre gratuite) et Mistral (modèle avec vision, p. ex.
-  Mistral Small). Même prompt et même format de réponse pour les deux. Le nom
-  du modèle de chaque IA est un réglage modifiable (les modèles changent
-  régulièrement). À vérifier dès le début de la réalisation : que l'API
-  Mistral accepte les appels directs depuis un navigateur (CORS) et que les
-  modèles avec vision sont inclus dans l'offre gratuite. Si l'appel direct
-  est bloqué, solution de repli : un petit relais gratuit (Cloudflare Worker)
-  qui transmet la requête sans stocker la clé. Réponse demandée au format JSON structuré :
-  `etat` (bon / à surveiller / malade), `resume`, `problemes[]`
-  (nom, cause probable, gravité), `actions[]` (action, priorité, délai),
-  `espece_suggeree`. Gestion des erreurs : pas de réseau, clé invalide,
-  quota dépassé — message clair, la photo reste enregistrée pour réessayer.
-- **Écrans** (deux colonnes quand le Fold est déplié) : liste des plantes (avec état du dernier diagnostic et jours
-  depuis le dernier arrosage) → fiche plante (infos, bouton « Arrosé »,
-  bouton « Diagnostiquer », chronologie) → résultat de diagnostic (avec
-  « Marquer comme fait » sur chaque action) → réglages (IA par défaut, clé et modèle
-  pour chaque IA, export / import).
+- **Forme** : application web progressive (PWA) installable, consultation et
+  saisie hors ligne ; seuls diagnostic, fiche d'espèce, sauvegarde Drive et
+  rappels requièrent le réseau (les actions sont mises en attente).
+- **Hébergement** : GitHub Pages depuis ce dépôt, déploiement par GitHub
+  Actions.
+- **Technique** : TypeScript + Vite + Svelte ; Dexie (IndexedDB) pour le
+  stockage local ; CSS maison pour le thème glossy (pas de bibliothèque de
+  composants lourde).
+- **Photos** : redimensionnées (~1280 px, JPEG) avant stockage et envoi ;
+  miniatures pour les listes.
+- **Persistance** : `navigator.storage.persist()`.
+- **IA** : interface commune « fournisseur d'analyse » (Gemini, Mistral),
+  même prompt et même schéma JSON de réponse ; deux usages : diagnostic et
+  fiche d'espèce. Nom du modèle de chaque IA réglable. Erreurs gérées (pas
+  de réseau, clé invalide, quota) : message clair, photos conservées pour
+  réessayer.
+- **À vérifier en premier** : appels directs depuis le navigateur vers
+  l'API Mistral (CORS) et accès aux modèles avec vision sur l'offre
+  gratuite ; idem pour l'envoi différé ntfy depuis le navigateur. Si un appel
+  direct est bloqué : petit relais gratuit (Cloudflare Worker) qui transmet
+  sans rien stocker.
+- **Drive** : Google Identity Services (jeton côté navigateur), portée
+  `drive.appdata`.
+- **Écrans** : Aujourd'hui → Plantes (par pièce) → Fiche plante (infos,
+  fiche d'espèce, soins rapides, bouton Diagnostiquer, chronologie) →
+  Diagnostic (prise de vue guidée → analyse → questions éventuelles →
+  résultat, avant/après, « ajouter aux tâches ») → Réglages (IA par défaut,
+  clés et modèles, pièces, notifications, sauvegarde Drive, export/import).
+- **Livraison par étapes**, chaque étape utilisable :
+  1. socle, design, plantes, pièces, soins, stockage, export/import ;
+  2. diagnostic (Gemini puis Mistral), plusieurs photos, confiance,
+     questions, suivi d'évolution, fiche d'espèce ;
+  3. écran Aujourd'hui, tâches, prévision d'arrosage ;
+  4. sauvegarde Google Drive, notifications ntfy.
 
 ## Laissé au réalisateur
 
-- Choix précis du framework et des bibliothèques, style visuel.
-- Formulation exacte du prompt envoyé à Gemini.
-- Structure détaillée du format d'export.
+- Bibliothèques secondaires, détail du style visuel dans le cadre ci-dessus.
+- Formulation exacte des prompts.
+- Coefficients saisonniers et formule exacte de prévision d'arrosage.
+- Format détaillé de l'export.
