@@ -5,6 +5,8 @@
   import { buildTimeline } from '../lib/care';
   import { navigate } from '../lib/router';
   import { db } from '../lib/db';
+  import { nextWatering } from '../lib/schedule';
+  import { formatDateFr, todayLocal } from '../lib/dates';
   import { CARE_ICONS, CARE_LABELS, CARE_TYPES, EXPOSURE_ICONS, EXPOSURE_LABELS } from '../lib/types';
   import type { Photo } from '../lib/types';
   import CareQuickActions from './CareQuickActions.svelte';
@@ -73,13 +75,14 @@
     await refresh();
   }
 
+  const forecast = $derived(plant ? nextWatering(plant, events, todayLocal()) : null);
   const freqs = $derived(plant ? CARE_TYPES.filter((t) => plant.careFrequencyDays[t]) : []);
 </script>
 
 {#if !plant}
   {#if app.loaded}
     <EmptyState icon="🍂" title="Plante introuvable" text="Elle a peut-être été supprimée.">
-      <a class="btn" href="#/">Retour à mes plantes</a>
+      <a class="btn" href="#/plantes">Retour à mes plantes</a>
     </EmptyState>
   {/if}
 {:else}
@@ -92,7 +95,7 @@
       {/if}
       <div class="shine"></div>
       <div class="bar">
-        <a class="btn btn-icon round back" href="#/" aria-label="Retour">‹</a>
+        <a class="btn btn-icon round back" href="#/plantes" aria-label="Retour">‹</a>
         <button class="btn btn-icon round" aria-label="Options" onclick={() => (menu = !menu)}>⋯</button>
       </div>
       {#if menu}
@@ -112,7 +115,10 @@
       {#if room}<span class="chip">🏠 {room.name}</span>{/if}
       {#if plant.exposure}<span class="chip">{EXPOSURE_ICONS[plant.exposure]} {EXPOSURE_LABELS[plant.exposure]}</span>{/if}
       <span class="chip">💧 {plant.waterAmountMl != null ? `${plant.waterAmountMl} mL` : '—'}</span>
-      {#each freqs as t}<span class="chip">{CARE_ICONS[t]} tous les {plant.careFrequencyDays[t]} j</span>{/each}
+      {#if forecast}
+        <span class="chip next" class:late={forecast.due < todayLocal()}>📅 Prochain arrosage : {forecast.due <= todayLocal() ? 'aujourd’hui' : formatDateFr(forecast.due)} · tous les {forecast.interval} j</span>
+      {/if}
+      {#each freqs.filter((t) => t !== 'arrosage') as t}<span class="chip">{CARE_ICONS[t]} tous les {plant.careFrequencyDays[t]} j</span>{/each}
     </div>
 
     <a class="btn btn-primary diagnose" href={`#/plante/${plant.id}/diagnostic`}>🔬 Diagnostiquer</a>
@@ -244,6 +250,14 @@
   }
   h2 {
     margin-bottom: 10px;
+  }
+  .next {
+    border-color: rgba(120, 210, 255, 0.4);
+    background: rgba(70, 180, 255, 0.1);
+  }
+  .next.late {
+    border-color: rgba(255, 107, 94, 0.45);
+    background: rgba(255, 107, 94, 0.1);
   }
   .notes {
     padding: 14px 16px;

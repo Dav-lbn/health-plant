@@ -9,6 +9,7 @@
   import Toast from './ui/Toast.svelte';
   import DiagnosisFlow from './ui/DiagnosisFlow.svelte';
   import DiagnosisResult from './ui/DiagnosisResult.svelte';
+  import Today from './ui/Today.svelte';
 
   let wide = $state(false);
 
@@ -32,7 +33,9 @@
 {#snippet detail()}
   {#key r.name + (selectedId ?? '') + (r.name === 'diagnosis' ? r.diagId : '')}
     <div class="page">
-      {#if r.name === 'plant'}
+      {#if r.name === 'today' || r.name === 'plants'}
+        <Today />
+      {:else if r.name === 'plant'}
         <PlantDetail id={r.id} />
       {:else if r.name === 'plant-edit'}
         <PlantForm id={r.id} />
@@ -49,7 +52,7 @@
   {/key}
 {/snippet}
 
-<Layout {list} detail={r.name === 'plants' ? null : detail} {wide} />
+<Layout {list} detail={!wide && r.name === 'plants' ? null : detail} {wide} dueCount={app.dueCount} />
 <Toast />
 
 <style>

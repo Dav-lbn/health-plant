@@ -1,6 +1,9 @@
 import { parseHash, type Route } from './router';
 import { listAllCare, listAllDiagnoses, listPlants, listRooms } from './repo';
 import { db } from './db';
+import { loadPostponed } from './tasks';
+import { buildTasks, type Task } from './schedule';
+import { todayLocal } from './dates';
 import type { CareEvent, Diagnosis, Photo, Plant, Room } from './types';
 
 export const app = $state({
@@ -12,6 +15,8 @@ export const app = $state({
   diagnoses: [] as Diagnosis[],
   lastDiag: {} as Record<string, Diagnosis>,
   loaded: false,
+  postponed: {} as Record<string, string>,
+  dueCount: 0,
 });
 
 if (typeof window !== 'undefined') {
@@ -35,6 +40,8 @@ export async function refresh(): Promise<void> {
   const last: Record<string, Diagnosis> = {};
   for (const d of diagnoses) if (d.status === 'termine' && !last[d.plantId]) last[d.plantId] = d;
   app.lastDiag = last;
+  app.postponed = await loadPostponed();
+  app.dueCount = currentTasks().filter((t) => t.status !== 'bientot').length;
   app.loaded = true;
 }
 
@@ -44,4 +51,9 @@ export function showToast(message: string, action: { label: string; run: () => v
   toast.message = message;
   toast.action = action;
   toast.id++;
+}
+
+/** Tâches calculées à partir de l'état courant. */
+export function currentTasks(today: string = todayLocal()): Task[] {
+  return buildTasks(app.plants, app.care, app.diagnoses, app.postponed, today);
 }

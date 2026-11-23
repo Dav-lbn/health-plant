@@ -3,6 +3,8 @@
   import PlantCard from './PlantCard.svelte';
   import EmptyState from './EmptyState.svelte';
   import type { Plant } from '../lib/types';
+  import { nextWatering } from '../lib/schedule';
+  import { todayLocal } from '../lib/dates';
 
   let { selectedId = null }: { selectedId?: string | null } = $props();
   let query = $state('');
@@ -25,6 +27,13 @@
     const none = filtered.filter((p) => !p.roomId || !roomIds.has(p.roomId));
     if (none.length) out.push({ id: '_none', name: 'Sans pièce', plants: none });
     return out;
+  });
+
+  const nextDue = $derived.by(() => {
+    const today = todayLocal();
+    const m: Record<string, string | null> = {};
+    for (const p of app.plants) m[p.id] = nextWatering(p, app.care.filter((e) => e.plantId === p.id), today)?.due ?? null;
+    return m;
   });
 
   const lastWater = $derived.by(() => {
@@ -59,7 +68,7 @@
     <h2 class="room">{s.name} <span class="muted">· {s.plants.length}</span></h2>
     <div class="cards">
       {#each s.plants as p (p.id)}
-        <PlantCard plant={p} photo={p.photoId ? app.thumbs[p.photoId] : undefined} lastWater={lastWater[p.id]} selected={p.id === selectedId} health={app.lastDiag[p.id]?.result?.state} />
+        <PlantCard plant={p} photo={p.photoId ? app.thumbs[p.photoId] : undefined} lastWater={lastWater[p.id]} selected={p.id === selectedId} health={app.lastDiag[p.id]?.result?.state} nextDue={nextDue[p.id]} />
       {/each}
     </div>
   {/each}
