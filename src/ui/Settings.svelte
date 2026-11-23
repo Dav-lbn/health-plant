@@ -5,6 +5,7 @@
   import { daysBetween, formatDateFr, todayLocal } from '../lib/dates';
   import { vibrate } from './haptics';
   import AiSettings from './AiSettings.svelte';
+  import KDriveSettings from './KDriveSettings.svelte';
 
   let newRoom = $state('');
   let lastExport = $state<string | null>(null);
@@ -127,7 +128,7 @@
   </section>
 
   <section class="glass block">
-    <h2>Sauvegarde</h2>
+    <h2>Export manuel</h2>
     <p class="muted">
       {exportDay ? `Dernier export : ${formatDateFr(exportDay)}` : 'Aucun export pour l’instant.'}
     </p>
@@ -139,8 +140,9 @@
       </label>
     </div>
     {#if importError}<p class="error" role="alert">{importError}</p>{/if}
-    <p class="muted small">La sauvegarde automatique sur Google Drive et kDrive arrivera dans une prochaine version.</p>
   </section>
+
+  <KDriveSettings />
 
   <p class="muted small center">Health Plant · version {__APP_VERSION__}</p>
 </div>
