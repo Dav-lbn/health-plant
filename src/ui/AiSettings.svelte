@@ -4,6 +4,7 @@
   import { findFreeModel, rankModels } from '../lib/ai/provider';
   import { AiError } from '../lib/ai/parse';
   import { MISTRAL_API } from '../lib/ai/mistral';
+  import { saveRelay } from '../lib/relay';
   import { PROVIDER_LABELS } from '../lib/types';
   import type { ProviderId } from '../lib/types';
   import { vibrate } from './haptics';
@@ -114,8 +115,18 @@
       </div>
       {#if id === 'mistral'}
         <label class="field">
-          Relais (facultatif)
-          <input bind:value={s.mistral.base} onchange={persist} placeholder={MISTRAL_API} inputmode="url" aria-label="Relais Mistral" />
+          Relais Cloudflare (facultatif, commun avec kDrive)
+          <input
+            value={s.mistral.base === MISTRAL_API ? '' : s.mistral.base}
+            onchange={async (e) => {
+              const v = (e.currentTarget as HTMLInputElement).value.trim();
+              s.mistral.base = v || MISTRAL_API;
+              await saveRelay(v);
+            }}
+            placeholder="https://…workers.dev"
+            inputmode="url"
+            aria-label="Relais Mistral"
+          />
         </label>
         <a class="small" href={RELAY_HELP} target="_blank" rel="noopener">Comment créer le relais ↗</a>
       {/if}

@@ -4,6 +4,7 @@ import { AiError } from './parse';
 import type { AnalysisProvider } from './provider';
 import { gemini } from './gemini';
 import { mistral, MISTRAL_API } from './mistral';
+import { loadRelay } from '../relay';
 
 export interface AiSettings {
   defaultProvider: ProviderId;
@@ -24,11 +25,13 @@ export function defaultAiSettings(): AiSettings {
 export async function loadAiSettings(): Promise<AiSettings> {
   const d = defaultAiSettings();
   const stored = (await db.meta.get(KEY))?.value as Partial<AiSettings> | undefined;
-  if (!stored) return d;
+  const relay = await loadRelay();
+  const base = relay || MISTRAL_API;
+  if (!stored) return { ...d, mistral: { ...d.mistral, base } };
   return {
     defaultProvider: stored.defaultProvider === 'mistral' ? 'mistral' : 'gemini',
     gemini: { ...d.gemini, ...stored.gemini },
-    mistral: { ...d.mistral, ...stored.mistral },
+    mistral: { ...d.mistral, ...stored.mistral, base },
   };
 }
 
