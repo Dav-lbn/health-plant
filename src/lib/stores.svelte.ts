@@ -4,6 +4,7 @@ import { db } from './db';
 import { loadPostponed } from './tasks';
 import { buildTasks, type Task } from './schedule';
 import { todayLocal } from './dates';
+import { notifyChange } from './backup/autobackup';
 import type { CareEvent, Diagnosis, Photo, Plant, Room } from './types';
 
 export const app = $state({
@@ -25,8 +26,8 @@ if (typeof window !== 'undefined') {
   });
 }
 
-/** Relit Dexie après chaque écriture. */
-export async function refresh(): Promise<void> {
+/** Relit Dexie ; `changed` (par défaut) programme une sauvegarde automatique. */
+export async function refresh(opts: { changed?: boolean } = {}): Promise<void> {
   const [plants, rooms, care, diagnoses] = await Promise.all([listPlants(), listRooms(), listAllCare(), listAllDiagnoses()]);
   const photoIds = plants.map((p) => p.photoId).filter((x): x is string => !!x);
   const photos = await db.photos.bulkGet(photoIds);
@@ -42,6 +43,7 @@ export async function refresh(): Promise<void> {
   app.lastDiag = last;
   app.postponed = await loadPostponed();
   app.dueCount = currentTasks().filter((t) => t.status !== 'bientot').length;
+  if (opts.changed !== false) notifyChange();
   app.loaded = true;
 }
 

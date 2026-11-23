@@ -36,7 +36,8 @@ function dataUrlToBlob(url: string): Blob {
   return new Blob([bytes], { type: m[1] });
 }
 
-export async function exportAll(): Promise<BackupFile> {
+/** @param record false pour une sauvegarde automatique (ne compte pas comme export manuel). */
+export async function exportAll(record = true): Promise<BackupFile> {
   const [rooms, plants, careEvents, photos, diagnoses] = await Promise.all([
     db.rooms.toArray(),
     db.plants.toArray(),
@@ -49,12 +50,12 @@ export async function exportAll(): Promise<BackupFile> {
     serialized.push({ ...p, blob: await blobToDataUrl(p.blob), thumb: await blobToDataUrl(p.thumb) });
   }
   const exportedAt = new Date().toISOString();
-  await db.meta.put({ key: LAST_EXPORT_KEY, value: exportedAt });
+  if (record) await db.meta.put({ key: LAST_EXPORT_KEY, value: exportedAt });
   return { app: 'health-plant', version: 2, exportedAt, rooms, plants, careEvents, photos: serialized, diagnoses };
 }
 
-export async function exportBlob(): Promise<{ blob: Blob; filename: string }> {
-  const data = await exportAll();
+export async function exportBlob(record = true): Promise<{ blob: Blob; filename: string }> {
+  const data = await exportAll(record);
   const day = data.exportedAt.slice(0, 10);
   return {
     blob: new Blob([JSON.stringify(data)], { type: 'application/json' }),

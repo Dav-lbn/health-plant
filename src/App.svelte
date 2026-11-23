@@ -18,7 +18,7 @@
     const update = () => (wide = mq.matches);
     update();
     mq.addEventListener('change', update);
-    refresh();
+    refresh({ changed: false });
     return () => mq.removeEventListener('change', update);
   });
 
