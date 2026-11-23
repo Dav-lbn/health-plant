@@ -75,6 +75,16 @@ describe('backupNow', () => {
     expect(await listPlants()).toHaveLength(1);
   });
 
+  test('copie du jour envoyée une seule fois par jour', async () => {
+    await enable();
+    const m = memoryClient();
+    setBackupDeps({ client: () => m.client });
+    await backupNow();
+    await backupNow();
+    await backupNow();
+    expect(m.puts()).toBe(4); // 3 sauvegardes courantes + 1 copie du jour
+  });
+
   test('deux appels simultanés → un seul envoi', async () => {
     await enable();
     const m = memoryClient({ delayMs: 20 });
@@ -113,6 +123,21 @@ describe('restauration', () => {
     await db.plants.clear();
     await restoreFromKDrive();
     expect((await listPlants()).map((p) => p.name)).toEqual(['Ficus']);
+  });
+
+  test('restauration d’une copie datée', async () => {
+    await enable();
+    const m = memoryClient();
+    setBackupDeps({ client: () => m.client });
+    await createPlant({ name: 'Ancienne', species: null, roomId: null, exposure: null, waterAmountMl: null, notes: '', photoId: null, careFrequencyDays: {} });
+    await backupNow();
+    const today = [...m.files.keys()].find((k) => k.includes('historique'))!;
+    m.files.set('/Health Plant/historique/health-plant-2026-01-01.json', m.files.get(today)!);
+    await db.plants.clear();
+    await createPlant({ name: 'Nouvelle', species: null, roomId: null, exposure: null, waterAmountMl: null, notes: '', photoId: null, careFrequencyDays: {} });
+    await backupNow();
+    await restoreFromKDrive('2026-01-01');
+    expect((await listPlants()).map((p) => p.name)).toEqual(['Ancienne']);
   });
 
   test('fichier invalide → erreur, base intacte', async () => {

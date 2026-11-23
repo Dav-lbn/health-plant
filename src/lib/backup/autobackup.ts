@@ -2,7 +2,7 @@ import { db } from '../db';
 import { exportBlob, importAll } from '../backup';
 import { loadRelay } from '../relay';
 import { todayLocal } from '../dates';
-import { downloadBackup, kdriveClient, KDriveError, uploadBackup, type KDriveClient, type KDriveConfig } from './kdrive';
+import { downloadBackup, kdriveClient, KDriveError, listBackups, uploadBackup, type KDriveClient, type KDriveConfig } from './kdrive';
 
 const CONFIG_KEY = 'kdrive';
 const STATUS_KEY = 'kdriveStatus';
@@ -11,6 +11,8 @@ const DAY_MS = 86_400_000;
 export interface BackupStatus {
   lastSuccessAt: string | null;
   lastError: string | null;
+  /** Date (AAAA-MM-JJ) de la dernière copie quotidienne envoyée. */
+  lastDailyCopy?: string | null;
 }
 
 interface Deps {
@@ -40,7 +42,7 @@ export async function saveKDriveConfig(c: KDriveConfig): Promise<void> {
 
 export async function loadStatus(): Promise<BackupStatus> {
   const v = (await db.meta.get(STATUS_KEY))?.value as Partial<BackupStatus> | undefined;
-  return { lastSuccessAt: v?.lastSuccessAt ?? null, lastError: v?.lastError ?? null };
+  return { lastSuccessAt: v?.lastSuccessAt ?? null, lastError: v?.lastError ?? null, lastDailyCopy: v?.lastDailyCopy ?? null };
 }
 
 async function saveStatus(s: BackupStatus): Promise<void> {
@@ -74,8 +76,9 @@ export function backupNow(): Promise<{ ok: boolean; error?: string }> {
     try {
       const client = await makeClient(cfg);
       const { blob } = await exportBlob(false);
-      await uploadBackup(client, blob, todayLocal());
-      await saveStatus({ lastSuccessAt: new Date().toISOString(), lastError: null });
+      const today = todayLocal();
+      await uploadBackup(client, blob, today, status.lastDailyCopy !== today);
+      await saveStatus({ lastSuccessAt: new Date().toISOString(), lastError: null, lastDailyCopy: today });
       return { ok: true };
     } catch (e) {
       const error = errorMessage(e);
@@ -88,10 +91,15 @@ export function backupNow(): Promise<{ ok: boolean; error?: string }> {
   return inflight;
 }
 
-export async function restoreFromKDrive(): Promise<void> {
+/** Restaure la sauvegarde la plus récente, ou la copie du jour `date` (AAAA-MM-JJ). */
+export async function restoreFromKDrive(date?: string): Promise<void> {
   const client = await makeClient();
-  const data = await downloadBackup(client);
+  const data = await downloadBackup(client, date);
   await importAll(data);
+}
+
+export async function availableBackups(): Promise<string[]> {
+  return listBackups(await makeClient());
 }
 
 export function shouldBackupOnOpen(lastSuccessAt: string | null, now: Date): boolean {

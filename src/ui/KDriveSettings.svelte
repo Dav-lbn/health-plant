@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import {
+    availableBackups,
     backupNow,
     defaultKDriveConfig,
     errorMessage,
@@ -15,6 +16,7 @@
   import { refresh, showToast } from '../lib/stores.svelte';
   import type { KDriveConfig } from '../lib/backup/kdrive';
   import { vibrate } from './haptics';
+  import { formatDateFr } from '../lib/dates';
 
   const RELAY_HELP = 'https://github.com/Dav-lbn/health-plant/blob/main/relay/README.md';
   const APP_PASSWORD = 'https://manager.infomaniak.com/v3/ng/profile/user/connection-history/application-password';
@@ -26,6 +28,7 @@
   let busy = $state<'' | 'test' | 'save' | 'restore'>('');
   let message = $state<{ ok: boolean; text: string } | null>(null);
   let showPass = $state(false);
+  let choices = $state<string[] | null>(null);
 
   onMount(async () => {
     cfg = await loadKDriveConfig();
@@ -75,13 +78,26 @@
     }
   }
 
-  async function restore() {
-    if (!confirm('Remplacer toutes les données de ce téléphone par la sauvegarde kDrive ?')) return;
+  async function openRestore() {
     busy = 'restore';
     message = null;
     await persist();
     try {
-      await restoreFromKDrive();
+      choices = await availableBackups();
+    } catch (e) {
+      message = { ok: false, text: errorMessage(e) };
+    } finally {
+      busy = '';
+    }
+  }
+
+  async function restore(date?: string) {
+    const which = date ? `la copie du ${formatDateFr(date)}` : 'la sauvegarde la plus récente';
+    if (!confirm(`Remplacer toutes les données de ce téléphone par ${which} ?`)) return;
+    choices = null;
+    busy = 'restore';
+    try {
+      await restoreFromKDrive(date);
       await refresh({ changed: false });
       vibrate('success');
       showToast('Données restaurées depuis kDrive');
@@ -141,8 +157,18 @@
     <div class="actions">
       <button class="btn" onclick={test} disabled={!ready || !!busy}>{busy === 'test' ? 'Test…' : 'Tester la connexion'}</button>
       <button class="btn btn-primary" onclick={save} disabled={!ready || !cfg.enabled || !!busy}>{busy === 'save' ? 'Envoi…' : '☁️ Sauvegarder maintenant'}</button>
-      <button class="btn" onclick={restore} disabled={!ready || !!busy}>{busy === 'restore' ? 'Restauration…' : '⤓ Restaurer depuis kDrive'}</button>
+      <button class="btn" onclick={openRestore} disabled={!ready || !!busy}>{busy === 'restore' ? 'Restauration…' : '⤓ Restaurer depuis kDrive'}</button>
     </div>
+    {#if choices}
+      <div class="choices glass" role="group" aria-label="Choisir la sauvegarde à restaurer">
+        <p class="muted small">Quelle sauvegarde restaurer ?</p>
+        <button class="btn btn-primary" onclick={() => restore()}>La plus récente</button>
+        {#each choices as d}
+          <button class="btn" onclick={() => restore(d)}>Copie du {formatDateFr(d)}</button>
+        {/each}
+        <button class="btn btn-ghost" onclick={() => (choices = null)}>Annuler</button>
+      </div>
+    {/if}
     {#if message}<p class="st" class:ok={message.ok} class:warn={!message.ok} role="status">{message.text}</p>{/if}
   {/if}
 </section>
@@ -199,6 +225,16 @@
     display: grid;
     gap: 8px;
     margin-top: 4px;
+  }
+  .choices {
+    display: grid;
+    gap: 8px;
+    padding: 12px;
+    border-radius: 18px;
+  }
+  .choices > * {
+    position: relative;
+    z-index: 1;
   }
   .st {
     margin: 0;

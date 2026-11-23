@@ -107,17 +107,30 @@ export function kdriveClient(cfg: KDriveConfig, relay: string): KDriveClient {
   };
 }
 
-export async function uploadBackup(client: KDriveClient, blob: Blob, today: string): Promise<void> {
+/** Envoie la sauvegarde courante ; la copie datée du jour seulement si `withDailyCopy`. */
+export async function uploadBackup(client: KDriveClient, blob: Blob, today: string, withDailyCopy = true): Promise<void> {
   await client.mkcol(FOLDER);
   await client.mkcol(HISTORY);
   await client.put(CURRENT, blob);
+  if (!withDailyCopy) return;
   await client.put(`${HISTORY}health-plant-${today}.json`, blob);
   const copies = (await client.list(HISTORY)).filter((n) => /^health-plant-\d{4}-\d{2}-\d{2}\.json$/.test(n)).sort();
   for (const old of copies.slice(0, Math.max(0, copies.length - KEEP))) await client.remove(`${HISTORY}${old}`);
 }
 
-export async function downloadBackup(client: KDriveClient): Promise<unknown> {
-  const text = await (await client.get(CURRENT)).text();
+/** Dates (AAAA-MM-JJ) des copies quotidiennes disponibles, de la plus récente à la plus ancienne. */
+export async function listBackups(client: KDriveClient): Promise<string[]> {
+  return (await client.list(HISTORY))
+    .map((n) => /^health-plant-(\d{4}-\d{2}-\d{2})\.json$/.exec(n)?.[1])
+    .filter((d): d is string => !!d)
+    .sort()
+    .reverse();
+}
+
+/** Télécharge la sauvegarde la plus récente, ou la copie d'une date donnée. */
+export async function downloadBackup(client: KDriveClient, date?: string): Promise<unknown> {
+  const path = date ? `${HISTORY}health-plant-${date}.json` : CURRENT;
+  const text = await (await client.get(path)).text();
   try {
     return JSON.parse(text);
   } catch {

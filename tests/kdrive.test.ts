@@ -97,3 +97,21 @@ test('downloadBackup', async () => {
   vi.stubGlobal('fetch', vi.fn(async () => new Response('{"app":"health-plant"}', { status: 200 })));
   expect(await downloadBackup(kdriveClient(cfg, ''))).toEqual({ app: 'health-plant' });
 });
+
+test('listBackups : copies datées, plus récentes d’abord', async () => {
+  const { listBackups } = await import('../src/lib/backup/kdrive');
+  vi.stubGlobal('fetch', vi.fn(async () => new Response(multistatus([
+    { href: '/Health%20Plant/historique/', dir: true },
+    { href: '/Health%20Plant/historique/health-plant-2026-11-20.json' },
+    { href: '/Health%20Plant/historique/autre.txt' },
+    { href: '/Health%20Plant/historique/health-plant-2026-11-22.json' },
+  ]), { status: 207 })));
+  expect(await listBackups(kdriveClient(cfg, ''))).toEqual(['2026-11-22', '2026-11-20']);
+});
+
+test('downloadBackup d’une date précise', async () => {
+  const f = vi.fn(async () => new Response('{"app":"health-plant"}', { status: 200 }));
+  vi.stubGlobal('fetch', f);
+  await downloadBackup(kdriveClient(cfg, ''), '2026-11-20');
+  expect(decodeURIComponent((f.mock.calls[0] as unknown as [string])[0])).toBe('https://123456.connect.kdrive.infomaniak.com/Health Plant/historique/health-plant-2026-11-20.json');
+});
